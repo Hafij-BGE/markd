@@ -140,9 +140,64 @@ jobs:
             dist/*.rpm
             dist/*.tar.gz
 
+  android:
+    name: Build (android)
+    needs: validate
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Setup pnpm + Node + dependencies
+        uses: ./.github/actions/setup
+        with:
+          node-version: '24.14.1'
+
+      - name: Cache Gradle
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('packages/android/android/**/*.gradle', 'packages/android/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Build web bundle
+        run: pnpm --filter @markd/android build:web
+
+      # Debug-signed so it installs directly (side-loading); a release APK
+      # is only produced when signing secrets are configured.
+      - name: Build APK
+        working-directory: packages/android/android
+        env:
+          MARKD_KEYSTORE_B64: ${{ secrets.MARKD_KEYSTORE_B64 }}
+          MARKD_KEYSTORE_PASSWORD: ${{ secrets.MARKD_KEYSTORE_PASSWORD }}
+          MARKD_KEY_ALIAS: ${{ secrets.MARKD_KEY_ALIAS }}
+          MARKD_KEY_PASSWORD: ${{ secrets.MARKD_KEY_PASSWORD }}
+        run: |
+          # The runner image ships the Android SDK and JDK 17 (not the default JDK).
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          version="${GITHUB_REF_NAME#v}"
+          ./gradlew assembleDebug --no-daemon -PmarkdVersion="$version"
+          if [[ -n "$MARKD_KEYSTORE_B64" ]]; then
+            echo "$MARKD_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/markd.keystore"
+            MARKD_KEYSTORE="$RUNNER_TEMP/markd.keystore" ./gradlew assembleRelease --no-daemon -PmarkdVersion="$version"
+          fi
+          mkdir -p ../../../dist
+          cp app/build/outputs/apk/*/*.apk ../../../dist/
+          ls -la ../../../dist
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: markd-android
+          retention-days: 7
+          if-no-files-found: error
+          path: dist/*.apk
+
   release:
     name: Publish GitHub Release
-    needs: build
+    needs: [build, android]
     runs-on: ubuntu-latest
     # Per-job permissions REPLACE workflow-level ones, so re-declare
     # both: contents:write to publish the release, actions:read for
@@ -159,7 +214,7 @@ jobs:
         with:
           path: artifacts
 
-      - name: Collect Linux artifacts
+      - name: Collect platform artifacts
         run: |
           mkdir -p dist
           find artifacts -type f ! -name 'builder-debug.yml' -exec cp {} dist/ \;
