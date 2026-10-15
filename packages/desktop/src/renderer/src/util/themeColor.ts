@@ -67,6 +67,33 @@ import nightfoxPrismTheme from '../assets/themes/prismjs/nightfox.theme.css?inli
 import cyberdreamPrismTheme from '../assets/themes/prismjs/cyberdream.theme.css?inline'
 import graphitePrismTheme from '../assets/themes/prismjs/graphite.theme.css?inline'
 import ulyssesPrismTheme from '../assets/themes/prismjs/ulysses.theme.css?inline'
+// Markd themes
+import wordLightTheme from '../assets/themes/word.theme.css?inline'
+import wordLightPrismTheme from '../assets/themes/prismjs/word.theme.css?inline'
+import wordDarkTheme from '../assets/themes/word-dark.theme.css?inline'
+import wordDarkPrismTheme from '../assets/themes/prismjs/word-dark.theme.css?inline'
+import githubLightTheme from '../assets/themes/github-light.theme.css?inline'
+import githubLightPrismTheme from '../assets/themes/prismjs/github-light.theme.css?inline'
+import oneLightTheme from '../assets/themes/one-light.theme.css?inline'
+import oneLightPrismTheme from '../assets/themes/prismjs/one-light.theme.css?inline'
+import sepiaTheme from '../assets/themes/sepia.theme.css?inline'
+import sepiaPrismTheme from '../assets/themes/prismjs/sepia.theme.css?inline'
+import vitesseLightTheme from '../assets/themes/vitesse-light.theme.css?inline'
+import vitesseLightPrismTheme from '../assets/themes/prismjs/vitesse-light.theme.css?inline'
+import quietLightTheme from '../assets/themes/quiet-light.theme.css?inline'
+import quietLightPrismTheme from '../assets/themes/prismjs/quiet-light.theme.css?inline'
+import githubDarkTheme from '../assets/themes/github-dark.theme.css?inline'
+import githubDarkPrismTheme from '../assets/themes/prismjs/github-dark.theme.css?inline'
+import nightOwlTheme from '../assets/themes/night-owl.theme.css?inline'
+import nightOwlPrismTheme from '../assets/themes/prismjs/night-owl.theme.css?inline'
+import vitesseDarkTheme from '../assets/themes/vitesse-dark.theme.css?inline'
+import vitesseDarkPrismTheme from '../assets/themes/prismjs/vitesse-dark.theme.css?inline'
+import cobalt2Theme from '../assets/themes/cobalt2.theme.css?inline'
+import cobalt2PrismTheme from '../assets/themes/prismjs/cobalt2.theme.css?inline'
+import zenburnTheme from '../assets/themes/zenburn.theme.css?inline'
+import zenburnPrismTheme from '../assets/themes/prismjs/zenburn.theme.css?inline'
+import moonlightTheme from '../assets/themes/moonlight.theme.css?inline'
+import moonlightPrismTheme from '../assets/themes/prismjs/moonlight.theme.css?inline'
 
 // Original themes
 export const dark = (): string => {
@@ -197,4 +224,57 @@ export const everforestLight = (): string => {
 
 export const rosePineDawn = (): string => {
   return rosePineDawnTheme + '\n' + rosePineDawnPrismTheme
+}
+
+// Markd themes
+export const githubLight = (): string => {
+  return githubLightTheme + '\n' + githubLightPrismTheme
+}
+
+export const oneLight = (): string => {
+  return oneLightTheme + '\n' + oneLightPrismTheme
+}
+
+export const sepia = (): string => {
+  return sepiaTheme + '\n' + sepiaPrismTheme
+}
+
+export const vitesseLight = (): string => {
+  return vitesseLightTheme + '\n' + vitesseLightPrismTheme
+}
+
+export const quietLight = (): string => {
+  return quietLightTheme + '\n' + quietLightPrismTheme
+}
+
+export const githubDark = (): string => {
+  return githubDarkTheme + '\n' + githubDarkPrismTheme
+}
+
+export const nightOwl = (): string => {
+  return nightOwlTheme + '\n' + nightOwlPrismTheme
+}
+
+export const vitesseDark = (): string => {
+  return vitesseDarkTheme + '\n' + vitesseDarkPrismTheme
+}
+
+export const cobalt2 = (): string => {
+  return cobalt2Theme + '\n' + cobalt2PrismTheme
+}
+
+export const zenburn = (): string => {
+  return zenburnTheme + '\n' + zenburnPrismTheme
+}
+
+export const moonlight = (): string => {
+  return moonlightTheme + '\n' + moonlightPrismTheme
+}
+
+export const wordLight = (): string => {
+  return wordLightTheme + '\n' + wordLightPrismTheme
+}
+
+export const wordDark = (): string => {
+  return wordDarkTheme + '\n' + wordDarkPrismTheme
 }

@@ -21,7 +21,15 @@ export const railscastsThemes: readonly string[] = Object.freeze([
   'oxocarbon-dark',
   'kanagawa',
   'nightfox',
-  'cyberdream'
+  'cyberdream',
+  // Markd themes
+  'word-dark',
+  'github-dark',
+  'night-owl',
+  'vitesse-dark',
+  'cobalt2',
+  'zenburn',
+  'moonlight'
 ])
 
 export const oneDarkThemes: readonly string[] = Object.freeze(['one-dark'])
@@ -70,7 +78,21 @@ const themeBackgroundColors: ReadonlyMap<string, string> = new Map([
   ['tokyo-night', '#1a1b26'],
   ['tokyo-night-light', '#d5d6db'],
   ['tokyo-night-storm', '#24283b'],
-  ['ulysses', '#f3f3f3']
+  ['ulysses', '#f3f3f3'],
+  // Markd themes
+  ['word', '#ffffff'],
+  ['word-dark', '#2b2b2b'],
+  ['github-light', '#ffffff'],
+  ['one-light', '#fafafa'],
+  ['sepia', '#f4ecd8'],
+  ['vitesse-light', '#ffffff'],
+  ['quiet-light', '#f5f5f5'],
+  ['github-dark', '#0d1117'],
+  ['night-owl', '#011627'],
+  ['vitesse-dark', '#121212'],
+  ['cobalt2', '#193549'],
+  ['zenburn', '#3f3f3f'],
+  ['moonlight', '#222436']
 ])
 
 const DARK_FALLBACK_BACKGROUND = '#282828'

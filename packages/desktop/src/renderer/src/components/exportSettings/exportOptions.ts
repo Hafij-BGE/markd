@@ -64,6 +64,10 @@ export const getHeaderFooterStyles = (): PrefSelectOption<number>[] => [
 
 export const getExportThemeList = (): PrefSelectOption<string>[] => [
   {
+    label: t('exportSettings.options.themes.editor'),
+    value: 'editor'
+  },
+  {
     label: t('exportSettings.options.themes.academic'),
     value: 'academic'
   },

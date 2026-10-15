@@ -103,9 +103,6 @@ test.describe('sequence diagram arrowheads survive PDF export (#2423)', () => {
     await installReferenceProbe(page)
     await stubSaveDialog(app, target)
     await sendIpcToRenderer(app, 'mt::show-export-dialog', 'pdf')
-    const confirm = page.locator('.print-settings-dialog .button-primary')
-    await confirm.waitFor({ state: 'visible', timeout: 20000 })
-    await confirm.click()
     await pollForFile(target)
     fs.rmSync(target, { force: true })
 

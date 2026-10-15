@@ -29,6 +29,7 @@ import type {
   LineEnding,
   MarkdownDocument,
   PageOptions,
+  DocxExportOptions,
   TabOptions
 } from '@shared/types/files'
 
@@ -88,6 +89,7 @@ interface ExportPayload {
   type: string
   content?: string
   pageOptions?: PageOptions
+  docxOptions?: DocxExportOptions
 }
 
 interface AutoSavePayload {
@@ -1655,7 +1657,7 @@ export const useEditorStore = defineStore('editor', {
       )
     },
 
-    EXPORT({ type, content, pageOptions }: ExportPayload): void {
+    EXPORT({ type, content, pageOptions, docxOptions }: ExportPayload): void {
       if (this.currentFile === null) return
 
       const { filename, pathname } = this.currentFile
@@ -1665,7 +1667,8 @@ export const useEditorStore = defineStore('editor', {
         content: content ?? '',
         filename,
         pathname,
-        pageOptions: pageOptions ?? {}
+        pageOptions: pageOptions ?? {},
+        docxOptions
       })
     },
 

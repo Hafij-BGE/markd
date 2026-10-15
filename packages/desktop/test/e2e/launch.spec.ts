@@ -16,8 +16,8 @@ test.describe('Check Launch MarkText', () => {
     await app.close()
   })
 
-  test('Empty MarkText', async() => {
+  test('Empty Markd', async() => {
     const title = await page.title()
-    expect(/^MarkText|Untitled-1 - MarkText$/.test(title)).toBeTruthy()
+    expect(/^Markd|Untitled-1 - Markd$/.test(title)).toBeTruthy()
   })
 })

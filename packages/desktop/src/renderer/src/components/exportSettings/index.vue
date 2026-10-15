@@ -25,7 +25,13 @@
 
           <!-- PDF/Print -->
           <div v-if="isPrintable">
-            <div v-if="exportType === 'pdf'">
+            <bool
+              v-if="supportsPageLayout && editorPageLayout !== 'none'"
+              :description="t('exportSettings.page.matchEditorLayout')"
+              :bool="matchEditorLayout"
+              :on-change="(value: unknown) => onSelectChange('matchEditorLayout', value)"
+            />
+            <div v-if="supportsPageLayout && !useEditorLayout">
               <cur-select
                 class="page-size-select"
                 :description="t('exportSettings.page.pageSize')"
@@ -59,7 +65,10 @@
               />
             </div>
 
-            <div class="row">
+            <div
+              v-if="!useEditorLayout"
+              class="row"
+            >
               <div class="description">
                 {{ t('exportSettings.page.pageMargin') }}
               </div>
@@ -285,7 +294,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, type Ref } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, type Ref } from 'vue'
+import { storeToRefs } from 'pinia'
+import { usePreferencesStore } from '@/store/preferences'
+import { quickExport } from '@/util/quickExport'
 import bus from '../../bus'
 import { loadExportSettings, saveExportSettings } from './persistence'
 import Bool from '@/prefComponents/common/bool/index.vue'
@@ -318,7 +330,13 @@ const fontSize = ref(14)
 const lineHeight = ref(1.5)
 const autoNumberingHeadings = ref(false)
 const showFrontMatter = ref(false)
-const theme = ref('default')
+const theme = ref('editor')
+const matchEditorLayout = ref(true)
+const { pageLayout: editorPageLayout } = storeToRefs(usePreferencesStore())
+const supportsPageLayout = computed(() => exportType.value === 'pdf' || exportType.value === 'docx')
+const useEditorLayout = computed(
+  () => supportsPageLayout.value && matchEditorLayout.value && editorPageLayout.value !== 'none'
+)
 const themeList = ref(getExportThemeList())
 const pageSizeList = ref(getPageSizeList())
 const headerFooterTypes = ref(getHeaderFooterTypes())
@@ -355,6 +373,7 @@ const persistableSettings: Record<string, Ref<unknown>> = {
   autoNumberingHeadings,
   showFrontMatter,
   theme,
+  matchEditorLayout,
   headerType,
   headerTextLeft,
   headerTextCenter,
@@ -404,6 +423,12 @@ const updateTranslations = () => {
 
 const showDialog = (type: unknown) => {
   const exportTypeValue = String(type ?? '')
+  // Markd exports straight away with the current theme and page layout; the
+  // options dialog is no longer needed for the built-in formats.
+  if (/^(pdf|docx|styledHtml|print)$/.test(exportTypeValue)) {
+    quickExport(exportTypeValue as 'pdf' | 'docx' | 'styledHtml' | 'print')
+    return
+  }
   exportType.value = exportTypeValue
   isPrintable.value = exportTypeValue !== 'styledHtml'
   if (!isPrintable.value && activeName.value === 'header') {
@@ -434,7 +459,8 @@ const handleClicked = () => {
     showFrontMatter: showFrontMatter.value,
     theme: theme.value === 'default' ? null : theme.value,
     tocTitle: tocTitle.value,
-    tocIncludeTopHeading: tocIncludeTopHeading.value
+    tocIncludeTopHeading: tocIncludeTopHeading.value,
+    matchEditorLayout: useEditorLayout.value
   }
 
   if (!isPrintable.value) {
@@ -494,6 +520,7 @@ const onSelectChange = (key: string, value: unknown) => {
     autoNumberingHeadings,
     showFrontMatter,
     theme,
+    matchEditorLayout,
     headerType,
     headerTextLeft,
     headerTextCenter,

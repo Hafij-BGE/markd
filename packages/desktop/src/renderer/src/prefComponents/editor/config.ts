@@ -79,3 +79,9 @@ export const getDefaultEncodingOptions = (): PrefSelectOption<string>[] => {
   defaultEncodingOptions = options
   return defaultEncodingOptions
 }
+
+export const getPageLayoutOptions = (): PrefSelectOption<string>[] =>
+  (['none', 'a4', 'letter', 'legal'] as const).map((value) => ({
+    label: t(`preferences.editor.textEditor.pageLayoutOptions.${value}`),
+    value
+  }))

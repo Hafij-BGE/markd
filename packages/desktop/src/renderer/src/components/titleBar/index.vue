@@ -19,7 +19,7 @@
         class="title"
         @dblclick.stop="toggleMaxmizeOnMacOS"
       >
-        <span v-if="!filename">MarkText</span>
+        <span v-if="!filename">Markd</span>
         <span v-else>
           <span
             class="save-dot"
@@ -52,7 +52,7 @@
       </div>
       <div :class="showCustomTitleBar ? 'left-toolbar title-no-drag' : 'right-toolbar'">
         <div
-          v-if="showCustomTitleBar"
+          v-if="showCustomTitleBar && !showFormatToolbar"
           class="frameless-titlebar-menu title-no-drag"
           @click.stop="handleMenuClick"
         >
@@ -212,7 +212,8 @@ onMounted(async () => {
   }
 })
 
-const { titleBarStyle } = storeToRefs(preferencesStore)
+// The ribbon carries every menu command, so the hamburger menu is redundant.
+const { titleBarStyle, showFormatToolbar } = storeToRefs(preferencesStore)
 const { showTabBar } = storeToRefs(layoutStore)
 
 const paths = computed(() => pathBreadcrumb(props.pathname ?? '', PATH_SEPARATOR))

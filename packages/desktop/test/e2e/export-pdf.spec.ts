@@ -96,15 +96,11 @@ const clearExportSuccesses = async(page: Page): Promise<void> => {
   })
 }
 
-// Drive the real renderer export dialog: send the same IPC the menu item sends
-// (`mt::show-export-dialog`), wait for the export-settings dialog to render,
-// then click its primary "Export" button. That runs the renderer pipeline that
-// renders the print webview and emits `mt::response-export` to main.
-const triggerPdfExportViaDialog = async(app: ElectronApplication, page: Page): Promise<void> => {
+// Send the same IPC the menu item sends (`mt::show-export-dialog`). Markd
+// exports straight away (no options dialog), running the renderer pipeline
+// that renders the print webview and emits `mt::response-export` to main.
+const triggerPdfExportViaDialog = async(app: ElectronApplication, _page: Page): Promise<void> => {
   await sendIpcToRenderer(app, 'mt::show-export-dialog', 'pdf')
-  const confirm = page.locator('.print-settings-dialog .button-primary')
-  await confirm.waitFor({ state: 'visible', timeout: 10000 })
-  await confirm.click()
 }
 
 const pollForPdfFile = async(filePath: string, timeoutMs = 20000): Promise<Buffer> => {

@@ -36,4 +36,4 @@ jobs:
       # which is exactly the PR that can break this consumer. Run it here, on
       # the declarations emitted above.
       - name: Typecheck the desktop against those declarations
-        run: pnpm --filter marktext exec vue-tsc --noEmit -p tsconfig.json
+        run: pnpm --filter markd exec vue-tsc --noEmit -p tsconfig.json

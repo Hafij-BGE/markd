@@ -50,6 +50,10 @@ export interface PreferencesState {
   trimUnnecessaryCodeBlockEmptyLines: boolean
   wrapCodeBlocks: boolean
   editorLineWidth: string
+  pageLayout: string
+  pageMargin: number
+  showFormatToolbar: boolean
+  showStatusBar: boolean
 
   // ----- Markdown editing -----
   autoPairBracket: boolean
@@ -167,7 +171,7 @@ export const usePreferencesStore = defineStore('preferences', {
     language: 'en',
     showPandocConvert: false,
 
-    editorFontFamily: 'Open Sans',
+    editorFontFamily: 'Calibri',
     fontSize: 16,
     lineHeight: 1.6,
     codeFontSize: 14,
@@ -177,6 +181,10 @@ export const usePreferencesStore = defineStore('preferences', {
     trimUnnecessaryCodeBlockEmptyLines: true,
     wrapCodeBlocks: false,
     editorLineWidth: '',
+    pageLayout: 'a4',
+    pageMargin: 25.4,
+    showFormatToolbar: true,
+    showStatusBar: true,
 
     autoPairBracket: true,
     autoPairMarkdownSyntax: true,
@@ -217,10 +225,10 @@ export const usePreferencesStore = defineStore('preferences', {
     sequenceTheme: 'hand',
     plantumlServer: 'https://www.plantuml.com/plantuml',
 
-    theme: 'light',
-    followSystemTheme: true,
-    lightModeTheme: 'light',
-    darkModeTheme: 'dark',
+    theme: 'word',
+    followSystemTheme: false,
+    lightModeTheme: 'word',
+    darkModeTheme: 'word-dark',
     customCss: '',
 
     spellcheckerEnabled: false,

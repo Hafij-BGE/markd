@@ -3,13 +3,25 @@
 **Markd** is a free Linux build of [MarkText](https://github.com/marktext/marktext), the open-source markdown editor.
 No account, no subscription, no paywall. 100% free under the MIT License.
 
-## Install (Linux)
+## What Markd adds
+
+- **Page layout**: write on a real A4 / US Letter / US Legal sheet with true page margins, so lines wrap exactly like the exported DOCX/PDF (Preferences → Editor → Page layout).
+- **Formatting toolbar**: one-click headings, bold/italic/underline/strike, highlight, super/subscript, code, math, links, images, tables, lists, task lists, quotes, code blocks and more.
+- **44 themes**: 11 new ones (GitHub Light/Dark, One Light, Sepia, Vitesse Light/Dark, Quiet Light, Night Owl, Cobalt2, Zenburn, Moonlight) on top of MarkText's 33.
+- **Themed export**: PDF, HTML and native **Word (.docx)** export (no pandoc needed) using the theme you are editing with, including the page colour.
+
+## Install
 
 Download from [Releases](https://github.com/Hafij-BGE/markd/releases):
 
-- **AppImage**: `chmod +x markd-linux-x86_64-*.AppImage && ./markd-linux-x86_64-*.AppImage`
-- **Debian/Ubuntu**: `sudo apt install ./markd-linux-amd64-*.deb`
-- **Tarball**: extract `markd-linux-x64-*.tar.gz` and run `./markd`
+**Linux** (x64 and arm64)
+
+- **AppImage**: `chmod +x markd-linux-*.AppImage && ./markd-linux-*.AppImage`
+- **Debian/Ubuntu**: `sudo apt install ./markd-linux-*.deb`
+- **Fedora/openSUSE**: `sudo dnf install ./markd-linux-*.rpm`
+- **Tarball**: extract `markd-linux-*.tar.gz` and run `./markd`
+
+**Windows** (x64): run `markd-win-x64-*-setup.exe`, or unzip the portable `markd-win-x64-*.zip`.
 
 ## Build from source
 

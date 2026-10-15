@@ -80,9 +80,6 @@ test.describe('#5541: the export render container stays out of the page layout',
     await installContainerProbe(page)
 
     await sendIpcToRenderer(app, 'mt::show-export-dialog', 'pdf')
-    const confirm = page.locator('.print-settings-dialog .button-primary')
-    await confirm.waitFor({ state: 'visible', timeout: 10000 })
-    await confirm.click()
 
     await waitForFile(out)
     fs.rmSync(out, { force: true })

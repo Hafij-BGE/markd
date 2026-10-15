@@ -228,6 +228,98 @@ const onSelectChange = (type: keyof PreferencesState, value: unknown): void => {
       }
     }
 
+    /* Markd themes */
+    &.word {
+      color: #262626;
+      background: #ffffff;
+      & a {
+        color: #0563c1;
+      }
+    }
+    &.word-dark {
+      color: #e6e6e6;
+      background: #2b2b2b;
+      & a {
+        color: #6cb4ff;
+      }
+    }
+    &.github-light {
+      color: #1f2328;
+      background: #ffffff;
+      & a {
+        color: #0969da;
+      }
+    }
+    &.one-light {
+      color: #383a42;
+      background: #fafafa;
+      & a {
+        color: #4078f2;
+      }
+    }
+    &.sepia {
+      color: #5b4636;
+      background: #f4ecd8;
+      & a {
+        color: #a0522d;
+      }
+    }
+    &.vitesse-light {
+      color: #393a34;
+      background: #ffffff;
+      & a {
+        color: #1c6b48;
+      }
+    }
+    &.quiet-light {
+      color: #333333;
+      background: #f5f5f5;
+      & a {
+        color: #4b69c6;
+      }
+    }
+    &.github-dark {
+      color: #f0f6fc;
+      background: #0d1117;
+      & a {
+        color: #4493f8;
+      }
+    }
+    &.night-owl {
+      color: #d6deeb;
+      background: #011627;
+      & a {
+        color: #82aaff;
+      }
+    }
+    &.vitesse-dark {
+      color: #dbd7ca;
+      background: #121212;
+      & a {
+        color: #4d9375;
+      }
+    }
+    &.cobalt2 {
+      color: #ffffff;
+      background: #193549;
+      & a {
+        color: #9effff;
+      }
+    }
+    &.zenburn {
+      color: #dcdccc;
+      background: #3f3f3f;
+      & a {
+        color: #8cd0d3;
+      }
+    }
+    &.moonlight {
+      color: #c8d3f5;
+      background: #222436;
+      & a {
+        color: #82aaff;
+      }
+    }
     /* New gogh themes - Dark */
     &.dracula {
       color: #f8f8f2;

@@ -23,6 +23,7 @@ import type {
   TabOptions,
   BootstrapEditorConfig,
   PageOptions,
+  DocxExportOptions,
   ExportType,
   SaveOptions,
   SerializedStat,
@@ -134,6 +135,7 @@ export interface IpcSendChannels {
   'mt::close-window-confirm': [unsavedFiles: UnsavedFile[]]
   'mt::cmd-close-window': []
   'mt::cmd-import-file': []
+  'mt::cmd-edit-role': [role: 'cut' | 'copy' | 'paste' | 'selectAll']
   'mt::cmd-new-editor-window': []
   'mt::cmd-open-file': []
   'mt::cmd-open-folder': []
@@ -161,6 +163,7 @@ export interface IpcSendChannels {
       filename: string
       pathname: string
       pageOptions: PageOptions
+      docxOptions?: DocxExportOptions
     }
   ]
   'mt::response-file-move-to': [payload: { id: string; pathname: string }]

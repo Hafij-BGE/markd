@@ -37,7 +37,7 @@ root holds only shared tooling and CI-facing scripts.
 <repo-root>/
   package.json              Workspace orchestrator — every CI-facing script
                             proxies to packages/desktop via `pnpm --filter
-                            marktext ...`. CI invocations are unchanged.
+                            markd ...`. CI invocations are unchanged.
   pnpm-workspace.yaml       `packages: ['packages/*']` plus allowBuilds.
   pnpm-lock.yaml            Single lockfile, shared across all packages.
   eslint.config.js          Root ESLint v9 flat config (covers desktop;
@@ -53,7 +53,7 @@ root holds only shared tooling and CI-facing scripts.
                             `directories.output: ../../dist` so CI artifact
                             globs `dist/*` still apply).
   packages/
-    desktop/                The Electron app (name: "marktext").
+    desktop/                The Electron app (name: "markd").
       package.json          Holds all Electron / Vue / build-time deps and
                             the dev/build/test/typecheck scripts. Depends on
                             @muyajs/core via workspace:*.
@@ -123,7 +123,7 @@ The root has no `src/`, `test/`, `static/`, or `build/` of its own anymore — t
 ## Development Workflow
 
 All commands run from the repo root. The root `package.json` proxies every
-desktop-specific script to `packages/desktop` via `pnpm --filter marktext`,
+desktop-specific script to `packages/desktop` via `pnpm --filter markd`,
 so the names and behavior are unchanged from the pre-monorepo layout.
 
 ```bash
