@@ -101,7 +101,7 @@ The APK is written to
 It is debug-signed and installs directly:
 
 ```bash
-adb install -r packages/android/android/app/build/outputs/apk/debug/Markd-0.1.0-android-debug.apk
+adb install -r packages/android/android/app/build/outputs/apk/debug/Markd-<version>-android-debug.apk
 ```
 
 The debug build uses the application id `io.github.hafijbge.markd.debug`, so
