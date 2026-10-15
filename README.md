@@ -19,6 +19,21 @@ pnpm install
 pnpm build:linux   # output in dist/
 ```
 
+## Android
+
+Markd also runs on Android phones and tablets (Android 8.0+), with the same
+Word-style ribbon, Word Light/Dark themes, A4/Letter/Legal page view and
+HTML/PDF/Word export. Stylus users get pen handwriting-to-text (Android 14+)
+and a pressure-sensitive sketch pad whose drawings are saved as images next to
+the `.md` file.
+
+1. Download `Markd-<version>-android-debug.apk` from
+   [Releases](https://github.com/Hafij-BGE/markd/releases) on the device.
+2. Open it and allow "Install unknown apps" for your browser or file manager when asked.
+3. Open Markd, then **Open** a `.md` file or **Open folder** (☰ menu) to browse a folder of notes.
+
+Building the APK yourself is described in [packages/android/README.md](packages/android/README.md).
+
 ## Credits
 
 Markd is based on MarkText by Luo Ran (Jocs) and the MarkText contributors.
