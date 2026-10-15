@@ -1,4 +1,4 @@
-name: Release MarkText
+name: Release Markd
 
 on:
   push:
@@ -41,22 +41,6 @@ jobs:
           - name: linux
             os: ubuntu-22.04
             platform: linux
-          - name: windows-x64
-            os: windows-latest
-            platform: windows
-            arch: x64
-          - name: windows-arm64
-            os: windows-11-arm
-            platform: windows
-            arch: arm64
-          - name: macos-x64
-            os: macos-15-intel
-            platform: macos
-            arch: x64
-          - name: macos-arm64
-            os: macos-15
-            platform: macos
-            arch: arm64
 
     steps:
       - name: Check out Git repository
@@ -134,7 +118,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: marktext-${{ matrix.name }}
+          name: markd-${{ matrix.name }}
           retention-days: 7
           if-no-files-found: error
           path: |
@@ -168,15 +152,11 @@ jobs:
         with:
           path: artifacts
 
-      - name: Install Python 3.12
-        uses: actions/setup-python@v7.0.0
-        with:
-          python-version: '3.12'
-
-      - name: Merge architecture-specific update metadata
+      - name: Collect Linux artifacts
         run: |
-          python -m pip install PyYAML==6.0.3
-          python scripts/merge-release-artifacts.py artifacts dist "${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          find artifacts -type f -exec cp {} dist/ \;
+          ls -la dist
 
       - name: Generate SHA256SUMS.txt
         working-directory: dist
@@ -198,12 +178,6 @@ jobs:
               echo "- May contain bugs and unfinished features."
               echo ""
             fi
-            echo "## ⚠️ Note for macOS users"
-            echo "Builds are unsigned (no Apple Developer ID). After dragging MarkText into Applications, clear the quarantine flag once:"
-            echo '```'
-            echo 'xattr -d com.apple.quarantine /Applications/MarkText.app'
-            echo '```'
-            echo ""
             echo "## Verifying downloads"
             echo "All artifacts are listed with their SHA-256 in \`SHA256SUMS.txt\`. Verify with:"
             echo '```'
