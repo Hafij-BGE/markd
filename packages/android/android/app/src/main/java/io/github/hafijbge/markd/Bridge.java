@@ -9,7 +9,12 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Bundle;
+import android.os.CancellationSignal;
+import android.os.ParcelFileDescriptor;
+import android.print.PageRange;
 import android.print.PrintAttributes;
+import android.print.PrintDocumentAdapter;
 import android.print.PrintManager;
 import android.provider.DocumentsContract;
 import android.util.Base64;
@@ -353,13 +358,44 @@ final class Bridge implements WebViewCompat.WebMessageListener {
                         : "Legal".equals(size) ? PrintAttributes.MediaSize.NA_LEGAL
                         : PrintAttributes.MediaSize.ISO_A4;
                     PrintAttributes attributes = new PrintAttributes.Builder().setMediaSize(media).build();
-                    manager.print(job, v.createPrintDocumentAdapter(job), attributes);
+                    manager.print(job, releasing(v.createPrintDocumentAdapter(job)), attributes);
                     call.resolve(true);
                 }
             });
             printView = view;
             view.loadDataWithBaseURL(MainActivity.ORIGIN + "/print/", html, "text/html", "UTF-8", null);
         });
+    }
+
+    /** Delegates to the WebView adapter and drops the off-screen WebView once printing ends. */
+    private PrintDocumentAdapter releasing(PrintDocumentAdapter inner) {
+        return new PrintDocumentAdapter() {
+            @Override
+            public void onStart() {
+                inner.onStart();
+            }
+
+            @Override
+            public void onLayout(PrintAttributes oldAttributes, PrintAttributes newAttributes, CancellationSignal cancel,
+                                 LayoutResultCallback callback, Bundle extras) {
+                inner.onLayout(oldAttributes, newAttributes, cancel, callback, extras);
+            }
+
+            @Override
+            public void onWrite(PageRange[] pages, ParcelFileDescriptor destination, CancellationSignal cancel,
+                                WriteResultCallback callback) {
+                inner.onWrite(pages, destination, cancel, callback);
+            }
+
+            @Override
+            public void onFinish() {
+                inner.onFinish();
+                if (printView != null) {
+                    printView.destroy();
+                    printView = null;
+                }
+            }
+        };
     }
 
     // ---- Intents ----

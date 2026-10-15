@@ -54,6 +54,24 @@ const installImageShim = (): void => {
     if (this instanceof HTMLImageElement && name.toLowerCase() === 'src') value = rewriteSrc(String(value))
     return setAttribute.call(this, name, value)
   }
+  // Block re-renders assign `innerHTML`, which sets attributes without going
+  // through the setters above; fix those images up as they appear.
+  const fixImage = (img: HTMLImageElement): void => {
+    const src = img.getAttribute('src')
+    if (src?.startsWith(DOC_FILE_PREFIX)) img.setAttribute('src', src)
+  }
+  new MutationObserver((records) => {
+    for (const record of records) {
+      if (record.type === 'attributes') {
+        if (record.target instanceof HTMLImageElement) fixImage(record.target)
+        continue
+      }
+      for (const node of record.addedNodes) {
+        if (node instanceof HTMLImageElement) fixImage(node)
+        else if (node instanceof Element) node.querySelectorAll('img').forEach(fixImage)
+      }
+    }
+  }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['src'] })
 }
 
 declare global {
@@ -182,27 +200,30 @@ export const rememberCursor = (): void => {
   }
 }
 
-/** Insert an image at the last known caret, or append it when there is none. */
+const markdownSrc = (src: string): string =>
+  /^(data:|https?:)/i.test(src) ? src : src.split('/').map(encodeURIComponent).join('/')
+
+/**
+ * Insert an image as its own paragraph after the block holding the last known
+ * caret, or append it to the document when there is no caret.
+ */
 export const insertImageAtCursor = (src: string, alt: string): void => {
   const editor = getMuya()
+  const image = `![${alt}](${markdownSrc(src)})`
+  const before = currentMarkdown()
   if (savedCursor) {
     try {
       editor.setCursorByOffset(savedCursor)
+      editor.insertParagraph('after', image, true)
     } catch {
       savedCursor = null
     }
   }
-  const before = currentMarkdown()
-  if (savedCursor) {
-    editor.insertImage({ src, alt })
-    // The edit reaches the state through a pending JSON op.
-    editor.flush()
-  }
-  if (editor.getMarkdown() === before) {
+  if (currentMarkdown() === before) {
     const md = before.replace(/\s*$/, '')
-    editor.setContent(`${md}${md ? '\n\n' : ''}![${alt}](${src})\n`)
-    notifyChange()
+    editor.setContent(`${md}${md ? '\n\n' : ''}${image}\n`)
   }
+  notifyChange()
 }
 
 /** `setContent` does not emit json-change; callers that replace text use this. */

@@ -27,6 +27,9 @@ export default [
       // ts/no-explicit-any), so we keep them isolated rather than try to
       // merge two flat configs.
       'packages/muya/**',
+      // Android Gradle project: Java sources, build output and the generated
+      // web bundle in app/src/main/assets/www.
+      'packages/android/android/**',
       'packages/desktop/src/renderer/src/assets/symbolIcon/index.js',
       '**/*.min.json',
       // Playwright writes these next to its config (packages/desktop/), not at

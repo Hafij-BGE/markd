@@ -42,7 +42,8 @@ const updateStatus = (): void => {
     const page = getPageDimensions(settings.pageLayout)
     const sheet = $('page')
     if (page && !isSourceMode()) {
-      const pages = Math.max(1, Math.ceil(sheet.scrollHeight / (page.height * MM_TO_PX)))
+      // Tolerance: the sheet's min-height rounds up to a whole pixel.
+      const pages = Math.max(1, Math.ceil(sheet.scrollHeight / (page.height * MM_TO_PX) - 0.01))
       $('status-pages').textContent = `${pages} ${pages === 1 ? 'page' : 'pages'}`
     } else {
       $('status-pages').textContent = isSourceMode() ? 'Source' : 'Mobile view'

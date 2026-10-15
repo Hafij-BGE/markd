@@ -40,11 +40,15 @@ const pageCss = (): string => {
 const IMG_SRC_REG = /(<img\b[^>]*?\ssrc=")([^"]+)(")/gi
 const ABSOLUTE_SRC_REG = /^(?:[a-z][a-z\d+.-]+:|\/\/|#)/i
 const DOC_FILE_PREFIX = 'file:///__markd_doc/'
+const DOC_ROUTE_REG = new RegExp(`^${location.origin.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/doc/[^/]+/(.+)$`)
 
 /** Document-relative path of an exported image src, or null for absolute ones. */
 const relativeSrc = (raw: string): string | null => {
   const src = raw.replace(/&amp;/g, '&')
   if (src.startsWith(DOC_FILE_PREFIX)) return src.slice(DOC_FILE_PREFIX.length)
+  // Already rewritten by the editor's image shim while the export rendered.
+  const served = DOC_ROUTE_REG.exec(src)
+  if (served) return served[1]!
   return ABSOLUTE_SRC_REG.test(src) ? null : src
 }
 
@@ -141,6 +145,9 @@ export const exportDocx = async(): Promise<void> => {
     const html = await buildHtml(false)
     const contentWidthPx = (page.width - 2 * margin) * MM_TO_PX
     const prepared = await prepareDocxHtml(html, contentWidthPx)
+    // html-to-docx decodes embedded images with Node's Buffer, even in its browser build.
+    const globals = globalThis as { Buffer?: unknown }
+    globals.Buffer ??= (await import('buffer')).Buffer
     const { default: HTMLtoDOCX } = await import('@turbodocx/html-to-docx')
     const result = await HTMLtoDOCX(prepared.html, null, {
       orientation: 'portrait',
