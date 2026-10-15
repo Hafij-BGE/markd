@@ -79,12 +79,9 @@ export const launchElectron = async(
   // free-width geometry, so they run without it unless a spec opts in. Without
   // explicit preferences, seed the shipped defaults (what a first launch
   // writes) so only the layout differs.
-  const shippedDefaults = options.preferences
+  const shippedDefaults: Record<string, unknown> = options.preferences
     ? {}
-    : (JSON.parse(fs.readFileSync(path.join(projectRoot, 'static/preference.json'), 'utf-8')) as Record<
-        string,
-        unknown
-      >)
+    : JSON.parse(fs.readFileSync(path.join(projectRoot, 'static/preference.json'), 'utf-8'))
   const preferences = { ...shippedDefaults, pageLayout: 'none', ...options.preferences }
   fs.mkdirSync(userDataDir, { recursive: true })
   fs.writeFileSync(
