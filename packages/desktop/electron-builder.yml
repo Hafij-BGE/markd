@@ -1,5 +1,9 @@
-appId: com.github.marktext.marktext
-productName: MarkText
+appId: com.github.hafijbge.markd
+productName: Markd
+publish:
+  provider: github
+  owner: Hafij-BGE
+  repo: markd
 directories:
   buildResources: build
   output: ../../dist
@@ -161,23 +165,21 @@ dmg:
       y: 240
       type: 'file'
 linux:
-  artifactName: 'marktext-linux-${version}.${ext}'
-  executableName: 'marktext'
+  artifactName: 'markd-linux-${arch}-${version}.${ext}'
+  executableName: 'markd'
   description: 'A simple and elegant open-source markdown editor that focused on speed and usability.'
-  maintainer: 'MarkText Contributors'
+  maintainer: 'Hafij-BGE <mdhafijur.rahman@ogr.deu.edu.tr>'
   category: 'Office;TextEditor;Utility'
   mimeTypes:
     - 'text/markdown'
   icon: 'static/icon.png'
   desktop:
     entry:
-      StartupWMClass: 'marktext'
-      Keywords: 'marktext;'
+      StartupWMClass: 'markd'
+      Keywords: 'markd;markdown;editor;'
   target:
     - AppImage
-    - snap
     - deb
-    - rpm
     - tar.gz
   fileAssociations:
     - ext: 'md'

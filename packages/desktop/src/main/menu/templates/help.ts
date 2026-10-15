@@ -41,7 +41,7 @@ export default function(): MenuItemConstructorOptions {
     {
       label: t('menu.help.changelog'),
       click() {
-        shell.openExternal('https://github.com/marktext/marktext/releases')
+        shell.openExternal('https://github.com/Hafij-BGE/markd/releases')
       }
     },
     {
@@ -65,19 +65,19 @@ export default function(): MenuItemConstructorOptions {
     {
       label: t('menu.help.askQuestion'),
       click() {
-        shell.openExternal('https://github.com/marktext/marktext/discussions')
+        shell.openExternal('https://github.com/Hafij-BGE/markd/discussions')
       }
     },
     {
       label: t('menu.help.reportBug'),
       click() {
-        shell.openExternal('https://github.com/marktext/marktext/issues')
+        shell.openExternal('https://github.com/Hafij-BGE/markd/issues')
       }
     },
     {
       label: t('menu.help.viewSource'),
       click() {
-        shell.openExternal('https://github.com/marktext/marktext')
+        shell.openExternal('https://github.com/Hafij-BGE/markd')
       }
     },
     {
@@ -86,7 +86,7 @@ export default function(): MenuItemConstructorOptions {
     {
       label: t('menu.help.license'),
       click() {
-        shell.openExternal('https://github.com/marktext/marktext/blob/develop/LICENSE')
+        shell.openExternal('https://github.com/Hafij-BGE/markd/blob/develop/LICENSE')
       }
     }
   ]

@@ -1,3 +1,32 @@
+# Markd
+
+**Markd** is a free Linux build of [MarkText](https://github.com/marktext/marktext), the open-source markdown editor.
+No account, no subscription, no paywall. 100% free under the MIT License.
+
+## Install (Linux)
+
+Download from [Releases](https://github.com/Hafij-BGE/markd/releases):
+
+- **AppImage**: `chmod +x markd-linux-x86_64-*.AppImage && ./markd-linux-x86_64-*.AppImage`
+- **Debian/Ubuntu**: `sudo apt install ./markd-linux-amd64-*.deb`
+- **Tarball**: extract `markd-linux-x64-*.tar.gz` and run `./markd`
+
+## Build from source
+
+```bash
+corepack enable
+pnpm install
+pnpm build:linux   # output in dist/
+```
+
+## Credits
+
+Markd is based on MarkText by Luo Ran (Jocs) and the MarkText contributors.
+Original copyright and the MIT License are kept in [LICENSE](LICENSE).
+The original upstream README follows below.
+
+---
+
 <p align="center"><img src="docs/assets/logo-small.png" alt="MarkText" width="100" height="100"></p>
 
 <h1 align="center">MarkText</h1>
