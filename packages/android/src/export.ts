@@ -7,7 +7,7 @@ import { baseName, doc, saveExport } from './document'
 import { blobToDataUrl, callNative, isNative } from './native'
 import { settings } from './settings'
 import { getPageDimensions, MM_TO_PX, themeCss } from './theme'
-import { prepareDocxHtml } from './docxHtml'
+import { prepareDocxHtml } from '../../desktop/src/renderer/src/util/docxHtml'
 import { toast } from './ui'
 
 const EXPORT_CSS = `

@@ -7,6 +7,9 @@ on:
     paths:
       - 'packages/android/**'
       - 'packages/muya/src/**'
+      # Shared with the desktop app: Word themes and the DOCX HTML preparer.
+      - 'packages/desktop/src/renderer/src/assets/themes/**'
+      - 'packages/desktop/src/renderer/src/util/docxHtml.ts'
       - 'pnpm-lock.yaml'
       - '.github/workflows/android.yml'
   push:
@@ -14,6 +17,8 @@ on:
     paths:
       - 'packages/android/**'
       - 'packages/muya/src/**'
+      - 'packages/desktop/src/renderer/src/assets/themes/**'
+      - 'packages/desktop/src/renderer/src/util/docxHtml.ts'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

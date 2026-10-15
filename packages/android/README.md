@@ -9,7 +9,7 @@ standalone `@muyajs/core` editor from `packages/muya`. The Electron renderer in
 - WYSIWYG Markdown editing (muya), with a touch-friendly Word-style ribbon:
   **File, Home, Insert, Draw, Layout, View**. The ribbon scrolls sideways on
   small screens and collapses when you tap the active tab.
-- Word Light / Word Dark themes (the same CSS as the desktop app). They follow
+- Word Light / Word Dark themes, imported from the desktop app's theme CSS. They follow
   the system theme by default.
 - Print layout on A4 / US Letter / US Legal paper with Word margins. It fits the
   page width or shows it at 100%. Mobile view lets text reflow, and Source shows
@@ -47,7 +47,6 @@ src/                 web app (TypeScript, Vite) → android/app/src/main/assets/
   document.ts        open / save / recent files / image assets (via native.ts)
   ink.ts, pen.ts     sketch pad and stylus status
   export.ts          HTML / PDF / DOCX
-  themes/            Word theme CSS, copied from packages/desktop
 android/             Gradle project
   MainActivity.java  WebView host, serves https://appassets.androidplatform.net
   Bridge.java        JS ⇄ native calls (SAF pickers, file IO, printing)

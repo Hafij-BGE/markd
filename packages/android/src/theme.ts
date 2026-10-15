@@ -1,10 +1,10 @@
 // Word Light / Word Dark themes shared with the desktop app, plus the A4 /
 // Letter / Legal page view (the Android take on desktop `setPageLayout`).
 
-import wordCss from './themes/word.theme.css?raw'
-import wordDarkCss from './themes/word-dark.theme.css?raw'
-import prismWordCss from './themes/prism-word.theme.css?raw'
-import prismWordDarkCss from './themes/prism-word-dark.theme.css?raw'
+import wordCss from '../../desktop/src/renderer/src/assets/themes/word.theme.css?raw'
+import wordDarkCss from '../../desktop/src/renderer/src/assets/themes/word-dark.theme.css?raw'
+import prismWordCss from '../../desktop/src/renderer/src/assets/themes/prismjs/word.theme.css?raw'
+import prismWordDarkCss from '../../desktop/src/renderer/src/assets/themes/prismjs/word-dark.theme.css?raw'
 import { callNative, isNative } from './native'
 import { onSettingsChange, settings, type PageLayoutId } from './settings'
 

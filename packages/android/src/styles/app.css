@@ -1,5 +1,5 @@
 /* Markd for Android: Word-style chrome around the muya editor. Colours come
-   from the Word theme variables (src/themes/word*.theme.css). */
+   from the Word theme variables (desktop themes/word*.theme.css). */
 
 :root {
   --appStatusBg: var(--wordAccent, #185abd);
