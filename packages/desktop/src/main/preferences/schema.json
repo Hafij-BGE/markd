@@ -74,7 +74,7 @@
     "description": "Editor--editor font family",
     "type": "string",
     "pattern": "^[^\\s]+((-|\\s)*[^\\s])*$",
-    "default": "Open Sans"
+    "default": "Calibri"
   },
   "fontSize": {
     "description": "Editor--Font size in pixels",
@@ -100,6 +100,28 @@
     "type": "string",
     "pattern": "^(?:$|[0-9]+(?:ch|px|%)$)",
     "default": ""
+  },
+  "pageLayout": {
+    "description": "Editor--Show the document as a page of paper with the real page width (A4, Letter or Legal) so text wraps like the exported DOCX/PDF.",
+    "enum": ["none", "a4", "letter", "legal"],
+    "default": "a4"
+  },
+  "pageMargin": {
+    "description": "Editor--Page margin in millimetres used by page layout and DOCX/PDF export.",
+    "type": "number",
+    "minimum": 5,
+    "maximum": 51,
+    "default": 25.4
+  },
+  "showFormatToolbar": {
+    "description": "Editor--Show the Word-style ribbon above the editor.",
+    "type": "boolean",
+    "default": true
+  },
+  "showStatusBar": {
+    "description": "Editor--Show the status bar (page, word and character count) below the editor.",
+    "type": "boolean",
+    "default": true
   },
   "codeFontSize": {
     "description": "Editor--Font size in code Block, the range is 12 ~ 18",
@@ -328,9 +350,9 @@
     "default": "https://www.plantuml.com/plantuml"
   },
   "theme": {
-    "description": "Theme--Select the theme used in MarkText",
+    "description": "Theme--Select the theme used in Markd",
     "type": "string",
-    "default": "light"
+    "default": "word"
   },
   "followSystemTheme": {
     "description": "Theme--Use separate theme in dark mode.",
@@ -340,7 +362,7 @@
   "lightModeTheme": {
     "description": "Theme--Theme to use when system is in light mode.",
     "type": "string",
-    "default": "light"
+    "default": "word"
   },
   "restoreLayoutState": {
     "description": "General--Restore previous editor state on startup.",
@@ -350,7 +372,7 @@
   "darkModeTheme": {
     "description": "Theme--Theme to use when system is in dark mode.",
     "type": "string",
-    "default": "dark"
+    "default": "word-dark"
   },
   "customCss": {
     "description": "Custom CSS--Custom CSS to apply to the current theme.--internal",

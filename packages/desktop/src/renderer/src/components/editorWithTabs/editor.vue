@@ -96,10 +96,14 @@ import {
   type IMuyaOptions,
   type IReplaceOption,
   type ISearchOption,
-  type ISerializedHistory
+  type ISerializedHistory,
+  escapeHTML
 } from '@muyajs/core'
 import { getMuyaLocale } from '@/util/muyaLocale'
 import { exportStyledHTML, type HeaderFooterPart } from '@/util/exportHtml'
+import { prepareDocxHtml } from '@/util/docxHtml'
+import { getPageDimensions } from 'common/pageLayout'
+import type { DocxExportOptions } from '@shared/types/files'
 import { applyCursor, isIndexCursor } from '@/util/cursor'
 import EditorSearch from '../search/index.vue'
 import MediaViewer from '../mediaViewer/index.vue'
@@ -120,7 +124,7 @@ import {
   TOP_LEVEL_HEADINGS_SELECTOR
 } from '@/util/tocNavigation'
 import { findActiveHeadingSlug, type HeadingPosition } from '@/util/findActiveHeading'
-import { addCommonStyle, setEditorWidth } from '@/util/theme'
+import { addCommonStyle, getThemeCss, setEditorWidth, setPageLayout } from '@/util/theme'
 import { usePreferencesStore } from '@/store/preferences'
 import { useEditorStore } from '@/store/editor'
 import { useProjectStore } from '@/store/project'
@@ -212,6 +216,8 @@ const {
   hideLinkPopup,
   autoCheck,
   editorLineWidth,
+  pageLayout,
+  pageMargin,
   wrapCodeBlocks,
   imageInsertAction,
   imagePreferRelativeDirectory,
@@ -634,6 +640,10 @@ watch(editorLineWidth, (value, oldValue) => {
   if (value !== oldValue) {
     setEditorWidth(value)
   }
+})
+
+watch([pageLayout, pageMargin], ([layout, margin]) => {
+  setPageLayout(layout, margin)
 })
 
 watch(wrapCodeBlocks, (value, oldValue) => {
@@ -1297,16 +1307,54 @@ interface ExportOptions {
   [key: string]: unknown
 }
 
+// Millimetre size of the export page chosen in the export dialog.
+const NAMED_PAGE_SIZES: Record<string, { width: number; height: number }> = {
+  A3: { width: 297, height: 420 },
+  A4: { width: 210, height: 297 },
+  A5: { width: 148, height: 210 },
+  Legal: { width: 215.9, height: 355.6 },
+  Letter: { width: 215.9, height: 279.4 },
+  Tabloid: { width: 279.4, height: 431.8 }
+}
+const getExportPageDimensions = (opts: ExportOptions): { width: number; height: number } => {
+  if (opts.pageSize === 'custom' && opts.pageSizeWidth && opts.pageSizeHeight) {
+    return { width: opts.pageSizeWidth, height: opts.pageSizeHeight }
+  }
+  return NAMED_PAGE_SIZES[opts.pageSize ?? 'A4'] ?? NAMED_PAGE_SIZES.A4!
+}
+
 const handleExport = async (options: unknown) => {
   const opts = options as ExportOptions
   const { type, headerFooterStyled, htmlTitle } = opts
 
-  if (!/^pdf|print|styledHtml$/.test(type)) {
+  if (!/^(pdf|print|styledHtml|docx)$/.test(type)) {
     throw new Error(`Invalid type to export: "${type}".`)
   }
 
   const muya = editor.value
   if (!muya) return
+
+  // Export with the active editor theme when chosen, and (optionally) reuse
+  // the editor's page layout + font so lines wrap like they do on screen.
+  opts.editorThemeCss = getThemeCss(theme.value)
+  opts.editorBgColor = getComputedStyle(document.documentElement)
+    .getPropertyValue('--editorBgColor')
+    .trim()
+  const page = opts.matchEditorLayout ? getPageDimensions(pageLayout.value) : null
+  if (page) {
+    const margin = pageMargin.value
+    Object.assign(opts, {
+      pageSize: page.printName,
+      isLandscape: false,
+      pageMarginTop: margin,
+      pageMarginRight: margin,
+      pageMarginBottom: margin,
+      pageMarginLeft: margin,
+      fontFamily: editorFontFamily.value || null,
+      fontSize: fontSize.value,
+      lineHeight: lineHeight.value
+    })
+  }
 
   const extraCss = await getCssForOptions(opts as unknown as PdfCssOptions)
   const htmlToc = getHtmlToc(muya.getTOC(), opts as unknown as HtmlTocOptions)
@@ -1367,6 +1415,57 @@ const handleExport = async (options: unknown) => {
           message: t('editor.export.errorExporting', { type: htmlTitle || 'PDF' })
         })
         handlePrintServiceClearup()
+      }
+      break
+    }
+    case 'docx': {
+      try {
+        const html = await exportStyledHTML(muya, markdown, {
+          title: '',
+          printOptimization: true,
+          extraCss,
+          toc: htmlToc,
+          dir: props.textDirection
+        })
+        const pageDims = getExportPageDimensions(opts)
+        const marginLeft = Number(opts.pageMarginLeft ?? 15)
+        const marginRight = Number(opts.pageMarginRight ?? 15)
+        const pageWidth = opts.isLandscape ? pageDims.height : pageDims.width
+        const contentWidthPx = ((pageWidth - marginLeft - marginRight) / 25.4) * 96
+        const { html: body, backgroundColor } = await prepareDocxHtml(html, contentWidthPx)
+        const hfHtml = (part: HeaderFooterPart | null): string | undefined => {
+          if (!part) return undefined
+          const text = [part.left, part.center, part.right]
+            .map((value) => (value || '').trim())
+            .filter(Boolean)
+            .map((value) => escapeHTML(value))
+            .join(' &nbsp; · &nbsp; ')
+          return text ? `<p style="text-align:center">${text}</p>` : undefined
+        }
+        const docxOptions: DocxExportOptions = {
+          pageWidthMm: pageDims.width,
+          pageHeightMm: pageDims.height,
+          landscape: !!opts.isLandscape,
+          marginTopMm: Number(opts.pageMarginTop ?? 20),
+          marginRightMm: marginRight,
+          marginBottomMm: Number(opts.pageMarginBottom ?? 20),
+          marginLeftMm: marginLeft,
+          fontFamily: (opts.fontFamily as string | null | undefined) || editorFontFamily.value || undefined,
+          fontSizePx: Number(opts.fontSize) || fontSize.value,
+          backgroundColor: opts.theme === 'editor' ? backgroundColor : undefined,
+          headerHtml: hfHtml(header),
+          footerHtml: hfHtml(footer),
+          pageNumber: !footer,
+          title: htmlTitle || undefined
+        }
+        editorStore.EXPORT({ type, content: body, docxOptions })
+      } catch (err) {
+        log.error('Failed to export document:', err)
+        notice.notify({
+          title: t('editor.export.failed', { type: 'DOCX' }),
+          type: 'error',
+          message: t('editor.export.errorExporting', { type: htmlTitle || 'DOCX' })
+        })
       }
       break
     }
@@ -2031,6 +2130,7 @@ onMounted(() => {
   document.addEventListener('keyup', keyup)
 
   setEditorWidth(editorLineWidth.value)
+  setPageLayout(pageLayout.value, pageMargin.value)
 })
 
 onBeforeUnmount(() => {

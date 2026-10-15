@@ -75,14 +75,23 @@ export const launchElectron = async(
   // Pass project root as entry so Electron reads package.json and getAppPath() returns project root.
   // Passing out/main/index.js directly bypasses package.json and breaks __static path resolution.
   const userDataDir = trackTempDir(getTempPath())
-  if (options.preferences) {
-    fs.mkdirSync(userDataDir, { recursive: true })
-    fs.writeFileSync(
-      path.join(userDataDir, 'preferences.json'),
-      JSON.stringify(options.preferences, null, 2),
-      'utf-8'
-    )
-  }
+  // Markd defaults to the A4 page layout; the inherited MarkText specs assert
+  // free-width geometry, so they run without it unless a spec opts in. Without
+  // explicit preferences, seed the shipped defaults (what a first launch
+  // writes) so only the layout differs.
+  const shippedDefaults = options.preferences
+    ? {}
+    : (JSON.parse(fs.readFileSync(path.join(projectRoot, 'static/preference.json'), 'utf-8')) as Record<
+        string,
+        unknown
+      >)
+  const preferences = { ...shippedDefaults, pageLayout: 'none', ...options.preferences }
+  fs.mkdirSync(userDataDir, { recursive: true })
+  fs.writeFileSync(
+    path.join(userDataDir, 'preferences.json'),
+    JSON.stringify(preferences, null, 2),
+    'utf-8'
+  )
   const args = [projectRoot, '--user-data-dir', userDataDir].concat(userArgs)
   const env: Record<string, string> = {}
   for (const [k, v] of Object.entries(process.env)) if (v !== undefined) env[k] = v

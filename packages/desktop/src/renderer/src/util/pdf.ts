@@ -23,9 +23,53 @@ export interface PdfCssOptions {
   autoNumberingHeadings?: boolean
   showFrontMatter?: boolean
   theme?: string
+  /** Raw CSS of the active editor theme, used when `theme === 'editor'`. */
+  editorThemeCss?: string
+  /** Resolved editor background colour, used to paint the page margins. */
+  editorBgColor?: string
   headerFooterFontSize?: number
   [key: string]: unknown
 }
+
+// Maps the editor theme variables onto the exported `.markdown-body`, so a
+// PDF/HTML/DOCX export looks like the document does in the editor. Every
+// variable has a fallback for themes (e.g. the default light theme) that only
+// define part of the palette.
+const EDITOR_THEME_EXPORT_CSS = `
+html, body { background: var(--editorBgColor, #ffffff) !important; }
+article.print-container, .markdown-body {
+  background: var(--editorBgColor, #ffffff) !important;
+  color: var(--editorColor, #24292f) !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.markdown-body h1 { color: var(--h1Color, var(--headingColor, inherit)); }
+.markdown-body h2 { color: var(--h2Color, var(--headingColor, inherit)); }
+.markdown-body h3 { color: var(--h3Color, var(--headingColor, inherit)); }
+.markdown-body h4 { color: var(--h4Color, var(--headingColor, inherit)); }
+.markdown-body h5 { color: var(--h5Color, var(--headingColor, inherit)); }
+.markdown-body h6 { color: var(--h6Color, var(--headingColor, inherit)); }
+.markdown-body h1, .markdown-body h2 { border-bottom-color: var(--hrColor, var(--editorColor10, #d0d7de)); }
+.markdown-body a { color: var(--linkColor, #0969da); }
+.markdown-body strong { color: var(--strongColor, inherit); }
+.markdown-body em { color: var(--emColor, inherit); }
+.markdown-body li::marker { color: var(--listMarkerColor, inherit); }
+.markdown-body blockquote {
+  color: var(--blockquoteTextColor, var(--editorColor60, #59636e));
+  border-left-color: var(--blockquoteBorderColor, var(--themeColor, #d0d7de));
+}
+.markdown-body hr { background-color: var(--hrColor, var(--editorColor10, #d0d7de)); border-color: var(--hrColor, var(--editorColor10, #d0d7de)); }
+.markdown-body code:not(pre code) { background: var(--codeBgColor, rgba(175, 184, 193, 0.2)); color: inherit; }
+.markdown-body pre, .markdown-body pre[class*='language-'], .markdown-body .highlight pre {
+  background: var(--codeBlockBgColor, #f6f8fa) !important;
+  color: var(--codeBlockColor, inherit);
+}
+.markdown-body table tr { background: transparent; border-top-color: var(--tableBorderColor, #d0d7de); }
+.markdown-body table tr:nth-child(2n) { background: var(--editorColor04, rgba(0, 0, 0, 0.03)); }
+.markdown-body table th, .markdown-body table td { border-color: var(--tableBorderColor, #d0d7de); }
+.markdown-body mark { background: var(--highlightColor, #fff8c5); color: inherit; }
+.markdown-body .token.operator, .markdown-body .token.entity, .markdown-body .token.url { background: none !important; }
+`
 
 export const getCssForOptions = async(options: PdfCssOptions): Promise<string> => {
   const {
@@ -40,9 +84,13 @@ export const getCssForOptions = async(options: PdfCssOptions): Promise<string> =
     autoNumberingHeadings,
     showFrontMatter,
     theme,
+    editorThemeCss,
+    editorBgColor,
     headerFooterFontSize
   } = options
-  const isPrintable = type !== 'styledHtml'
+  // DOCX styles are resolved on screen (see docxHtml.ts), so they must not be
+  // wrapped in `@media print`.
+  const isPrintable = type !== 'styledHtml' && type !== 'docx'
 
   let output = ''
   if (isPrintable) {
@@ -64,7 +112,14 @@ export const getCssForOptions = async(options: PdfCssOptions): Promise<string> =
   }
 
   if (theme) {
-    if (theme === 'academic') {
+    if (theme === 'editor') {
+      output += (editorThemeCss || '') + EDITOR_THEME_EXPORT_CSS
+      if (isPrintable && editorBgColor && /^[#a-z0-9(),.\s%]+$/i.test(editorBgColor)) {
+        // Paint the page margins too, otherwise a dark theme prints inside a
+        // white frame.
+        output += `@page{background:${editorBgColor};}`
+      }
+    } else if (theme === 'academic') {
       output += academicTheme
     } else if (theme === 'liber') {
       output += liberTheme

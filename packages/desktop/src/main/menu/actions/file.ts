@@ -30,7 +30,13 @@ import pandoc, {
   shouldMirrorMedia
 } from '../../utils/pandoc'
 import { t, getCurrentLanguage } from '../../i18n'
-import type { PandocExportPayload, TabOptions, UnsavedFile } from '@shared/types/files'
+import type {
+  DocxExportOptions,
+  PandocExportPayload,
+  TabOptions,
+  UnsavedFile
+} from '@shared/types/files'
+import { htmlToDocx } from '../../utils/docx'
 
 type Win = BrowserWindow | null | undefined
 
@@ -51,6 +57,13 @@ const getExportExtensionFilter = (type: string): Electron.FileFilter[] | undefin
       {
         name: 'Portable Document Format',
         extensions: ['pdf']
+      }
+    ]
+  } else if (type === 'docx') {
+    return [
+      {
+        name: 'Word Document',
+        extensions: ['docx']
       }
     ]
   } else if (type === 'styledHtml') {
@@ -89,6 +102,7 @@ interface ExportPayload {
   pathname?: string
   title?: string
   pageOptions?: PageOptions
+  docxOptions?: DocxExportOptions
 }
 
 /** A title or heading can carry a slash, a basename what the OS refuses; empty is `Untitled`. */
@@ -97,7 +111,7 @@ const sanitizeFilename = (name?: string): string =>
 
 // Handle the export response from renderer process.
 const handleResponseForExport = async(e: IpcMainEvent, payload: ExportPayload): Promise<void> => {
-  const { type, content, pathname, title, pageOptions } = payload
+  const { type, content, pathname, title, pageOptions, docxOptions } = payload
   const win = BrowserWindow.fromWebContents(e.sender)
   if (!win) {
     return
@@ -127,6 +141,12 @@ const handleResponseForExport = async(e: IpcMainEvent, payload: ExportPayload): 
         Object.assign(options, getPdfPageOptions(pageOptions))
         const data = await win.webContents.printToPDF(options)
         removePrintServiceFromWindow(win)
+        await writeFile(filePath, data, extension!, 'binary')
+      } else if (type === 'docx') {
+        if (!content || !docxOptions) {
+          throw new Error('No document content found.')
+        }
+        const data = await htmlToDocx(content, docxOptions)
         await writeFile(filePath, data, extension!, 'binary')
       } else {
         if (!content) {
@@ -792,6 +812,15 @@ ipcMain.on('mt::cmd-close-window', (e) => {
   if (win) {
     win.close()
   }
+})
+
+// Ribbon clipboard buttons: run the same native roles as the Edit menu.
+ipcMain.on('mt::cmd-edit-role', (e, role: 'cut' | 'copy' | 'paste' | 'selectAll') => {
+  const contents = e.sender
+  if (role === 'cut') contents.cut()
+  else if (role === 'copy') contents.copy()
+  else if (role === 'paste') contents.paste()
+  else if (role === 'selectAll') contents.selectAll()
 })
 
 ipcMain.on('mt::cmd-import-file', (e) => {

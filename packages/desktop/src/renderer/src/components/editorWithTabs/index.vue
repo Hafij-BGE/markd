@@ -4,6 +4,7 @@
     :style="{ 'max-width': `calc(100vw - ${effectiveSideBarWidth}px)` }"
   >
     <tabs v-show="showTabBar" />
+    <format-toolbar v-if="showFormatToolbar" />
     <div class="container">
       <editor
         :markdown="markdown"
@@ -18,17 +19,21 @@
         :text-direction="textDirection"
       />
     </div>
+    <status-bar v-if="showStatusBar" />
     <tab-notifications />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useLayoutStore } from '@/store/layout'
+import { usePreferencesStore } from '@/store/preferences'
 import { storeToRefs } from 'pinia'
 import Tabs from './tabs.vue'
 import Editor from './editor.vue'
 import SourceCode from './sourceCode.vue'
 import TabNotifications from './notifications.vue'
+import FormatToolbar from '../formatToolbar/index.vue'
+import StatusBar from '../statusBar/index.vue'
 
 defineProps<{
   markdown: string
@@ -44,6 +49,7 @@ defineProps<{
 }>()
 
 const { effectiveSideBarWidth } = storeToRefs(useLayoutStore())
+const { showFormatToolbar, showStatusBar } = storeToRefs(usePreferencesStore())
 </script>
 
 <style scoped>

@@ -16,7 +16,7 @@
   "treePathExcludePatterns": [],
   "language": "en",
 
-  "editorFontFamily": "Open Sans",
+  "editorFontFamily": "Calibri",
   "fontSize": 16,
   "lineHeight": 1.6,
   "codeFontSize": 14,
@@ -26,6 +26,10 @@
   "trimUnnecessaryCodeBlockEmptyLines": true,
   "wrapCodeBlocks": false,
   "editorLineWidth": "",
+  "pageLayout": "a4",
+  "pageMargin": 25.4,
+  "showFormatToolbar": true,
+  "showStatusBar": true,
 
   "autoPairBracket": true,
   "autoPairMarkdownSyntax": true,
@@ -65,10 +69,10 @@
   "sequenceTheme": "hand",
   "plantumlServer": "https://www.plantuml.com/plantuml",
 
-  "theme": "light",
-  "followSystemTheme": true,
-  "lightModeTheme": "light",
-  "darkModeTheme": "dark",
+  "theme": "word",
+  "followSystemTheme": false,
+  "lightModeTheme": "word",
+  "darkModeTheme": "word-dark",
   "customCss": "",
 
   "spellcheckerEnabled": false,

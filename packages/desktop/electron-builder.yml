@@ -88,6 +88,8 @@ electronFuses:
 
 asarUnpack:
   - resources/**
+  # ripgrep's platform binary is spawned from disk (see main/ipc/ripgrep.ts).
+  - node_modules/@vscode/ripgrep-*/**
 fileAssociations:
   - ext: md
     name: Markdown
@@ -126,14 +128,14 @@ fileAssociations:
     role: Editor
     icon: icons/md.ico
 win:
-  executableName: marktext
-  artifactName: 'marktext-win-${arch}-${version}.${ext}'
+  executableName: markd
+  artifactName: 'markd-win-${arch}-${version}.${ext}'
   target:
     - target: 'nsis'
     - target: 'zip'
   icon: static/icon.ico
 nsis:
-  artifactName: 'marktext-win-${arch}-${version}-setup.${ext}'
+  artifactName: 'markd-win-${arch}-${version}-setup.${ext}'
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: true
@@ -143,7 +145,7 @@ nsis:
   perMachine: false
   include: windows/installer.nsh
 mac:
-  artifactName: 'marktext-mac-${arch}-${version}.${ext}'
+  artifactName: 'markd-mac-${arch}-${version}.${ext}'
   entitlementsInherit: build/mac/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
@@ -155,7 +157,7 @@ mac:
     - dmg
     - zip
 dmg:
-  artifactName: 'marktext-mac-${arch}-${version}.${ext}'
+  artifactName: 'markd-mac-${arch}-${version}.${ext}'
   contents:
     - x: 410
       y: 240
@@ -180,6 +182,7 @@ linux:
   target:
     - AppImage
     - deb
+    - rpm
     - tar.gz
   fileAssociations:
     - ext: 'md'

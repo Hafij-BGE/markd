@@ -39,6 +39,33 @@
           :error-message="t('preferences.editor.textEditor.maxWidthInvalid')"
           :on-change="(value) => onSelectChange('editorLineWidth', value)"
         />
+        <cur-select
+          :description="t('preferences.editor.textEditor.pageLayout')"
+          :notes="t('preferences.editor.textEditor.pageLayoutNotes')"
+          :value="pageLayout"
+          :options="getPageLayoutOptions()"
+          :on-change="(value) => onSelectChange('pageLayout', value)"
+        />
+        <range
+          v-if="pageLayout !== 'none'"
+          :description="t('preferences.editor.textEditor.pageMargin')"
+          :value="pageMargin"
+          :min="5"
+          :max="50.8"
+          unit="mm"
+          :step="0.1"
+          :on-change="(value) => onSelectChange('pageMargin', value)"
+        />
+        <bool
+          :description="t('preferences.editor.textEditor.showFormatToolbar')"
+          :bool="showFormatToolbar"
+          :on-change="(value) => onSelectChange('showFormatToolbar', value)"
+        />
+        <bool
+          :description="t('preferences.editor.textEditor.showStatusBar')"
+          :bool="showStatusBar"
+          :on-change="(value) => onSelectChange('showStatusBar', value)"
+        />
       </template>
     </compound>
 
@@ -205,7 +232,8 @@ import {
   getEndOfLineOptions,
   getTextDirectionOptions,
   getTrimTrailingNewlineOptions,
-  getDefaultEncodingOptions
+  getDefaultEncodingOptions,
+  getPageLayoutOptions
 } from './config'
 
 const { t } = useI18n()
@@ -234,6 +262,10 @@ const {
   autoNormalizeLineEndings,
   wrapCodeBlocks,
   editorLineWidth,
+  pageLayout,
+  pageMargin,
+  showFormatToolbar,
+  showStatusBar,
   defaultEncoding,
   autoGuessEncoding,
   trimTrailingNewline

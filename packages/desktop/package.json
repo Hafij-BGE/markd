@@ -1,6 +1,7 @@
 {
-  "name": "marktext",
-  "version": "0.22.0",
+  "name": "markd",
+  "productName": "Markd",
+  "version": "0.23.0",
   "description": "Markd - free markdown editor (fork of MarkText)",
   "main": "./out/main/index.js",
   "author": {
@@ -60,6 +61,7 @@
     "@jsr/std__path": "^1.1.6",
     "@marktext/file-icons": "^1.0.6",
     "@muyajs/core": "workspace:*",
+    "@turbodocx/html-to-docx": "1.23.1",
     "@vscode/ripgrep": "^1.18.0",
     "arg": "^5.0.2",
     "axios": "^1.20.0",
@@ -82,6 +84,7 @@
     "fuzzaldrin": "^2.1.0",
     "github-markdown-css": "^5.9.0",
     "iso-639-1": "^3.1.6",
+    "jszip": "3.10.1",
     "katex": "^0.19.0",
     "keytar": "^7.9.0",
     "lodash": "^4.18.1",
@@ -104,6 +107,12 @@
     "write-file-atomic": "^8.0.0"
   },
   "optionalDependencies": {
+    "@vscode/ripgrep-darwin-arm64": "1.18.0",
+    "@vscode/ripgrep-darwin-x64": "1.18.0",
+    "@vscode/ripgrep-linux-arm64": "1.18.0",
+    "@vscode/ripgrep-linux-x64": "1.18.0",
+    "@vscode/ripgrep-win32-arm64": "1.18.0",
+    "@vscode/ripgrep-win32-x64": "1.18.0",
     "native-keymap": "^3.3.9"
   },
   "devDependencies": {

@@ -8,6 +8,7 @@ import type Preference from '../../preferences'
 // passed to `selectTheme` / compared against the saved theme. (A few light
 // themes keep historical ids, e.g. cadmiumLight -> 'light'.)
 const LIGHT_THEMES: ReadonlyArray<readonly [string, string]> = [
+  ['wordLight', 'word'],
   ['ayuLight', 'ayu-light'],
   ['cadmiumLight', 'light'],
   ['catppuccinLatte', 'catppuccin-latte'],
@@ -17,10 +18,16 @@ const LIGHT_THEMES: ReadonlyArray<readonly [string, string]> = [
   ['rosePineDawn', 'rose-pine-dawn'],
   ['solarizedLight', 'solarized-light'],
   ['tokyoNightLight', 'tokyo-night-light'],
-  ['ulyssesLight', 'ulysses']
+  ['ulyssesLight', 'ulysses'],
+  ['githubLight', 'github-light'],
+  ['oneLight', 'one-light'],
+  ['sepia', 'sepia'],
+  ['vitesseLight', 'vitesse-light'],
+  ['quietLight', 'quiet-light']
 ]
 
 const DARK_THEMES: ReadonlyArray<readonly [string, string]> = [
+  ['wordDark', 'word-dark'],
   ['ayuDark', 'ayu-dark'],
   ['ayuMirage', 'ayu-mirage'],
   ['cadmiumDark', 'dark'],
@@ -43,7 +50,13 @@ const DARK_THEMES: ReadonlyArray<readonly [string, string]> = [
   ['solarizedDark', 'solarized-dark'],
   ['synthwave84', 'synthwave-84'],
   ['tokyoNight', 'tokyo-night'],
-  ['tokyoNightStorm', 'tokyo-night-storm']
+  ['tokyoNightStorm', 'tokyo-night-storm'],
+  ['githubDark', 'github-dark'],
+  ['nightOwl', 'night-owl'],
+  ['vitesseDark', 'vitesse-dark'],
+  ['cobalt2', 'cobalt2'],
+  ['zenburn', 'zenburn'],
+  ['moonlight', 'moonlight']
 ]
 
 export default function(userPreference: Preference): MenuItemConstructorOptions {

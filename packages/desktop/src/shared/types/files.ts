@@ -170,7 +170,30 @@ export interface PageOptions {
   [key: string]: unknown
 }
 
-export type ExportType = 'pdf' | 'html' | 'styledHtml' | 'png' | 'jpeg'
+export type ExportType = 'pdf' | 'html' | 'styledHtml' | 'png' | 'jpeg' | 'docx'
+
+/** Page and style settings for the native (pandoc-free) DOCX export. */
+export interface DocxExportOptions {
+  /** Page width / height in millimetres (portrait orientation). */
+  pageWidthMm: number
+  pageHeightMm: number
+  landscape?: boolean
+  marginTopMm: number
+  marginRightMm: number
+  marginBottomMm: number
+  marginLeftMm: number
+  /** Default body font (first family name only). */
+  fontFamily?: string
+  /** Default body font size in CSS pixels. */
+  fontSizePx?: number
+  /** Page colour as `#rrggbb`, painted as the Word page background. */
+  backgroundColor?: string
+  /** Sanitized header / footer HTML. */
+  headerHtml?: string
+  footerHtml?: string
+  pageNumber?: boolean
+  title?: string
+}
 
 /** Current document handed to the main process for a pandoc export. */
 export interface PandocExportPayload {

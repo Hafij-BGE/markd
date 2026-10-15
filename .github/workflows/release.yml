@@ -41,6 +41,13 @@ jobs:
           - name: linux
             os: ubuntu-22.04
             platform: linux
+          - name: linux-arm64
+            os: ubuntu-22.04-arm
+            platform: linux
+          - name: windows-x64
+            os: windows-latest
+            platform: windows
+            arch: x64
 
     steps:
       - name: Check out Git repository
@@ -210,7 +217,7 @@ jobs:
       - name: Collect platform artifacts
         run: |
           mkdir -p dist
-          find artifacts -type f -exec cp {} dist/ \;
+          find artifacts -type f ! -name 'builder-debug.yml' -exec cp {} dist/ \;
           ls -la dist
 
       - name: Generate SHA256SUMS.txt
