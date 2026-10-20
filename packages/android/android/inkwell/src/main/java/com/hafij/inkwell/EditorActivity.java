@@ -78,8 +78,9 @@ public class EditorActivity extends Activity implements CanvasView.Host {
     /** Set when editing a note in the library folder: the local file is a working copy. */
     private Uri docUri, treeUri;
     private String parentId;
-    /** Set while loading when the PDF was found by name in the folder: the link to update. */
+    /** Set while loading when the PDF was found somewhere else: the link to update. */
     private volatile Uri foundPdf;
+    private volatile String foundPath;
     private boolean waitingForAccess;
 
     private TextView titleView, pageView;
@@ -146,6 +147,12 @@ public class EditorActivity extends Activity implements CanvasView.Host {
         openPdf();
         canvas.setup(doc, undo, tools, pdf, this);
         updateUndo();
+        if (foundPath != null && doc.pdf != null) {
+            doc.pdfPath = foundPath;
+            foundPath = null;
+            onEdited();
+            Toast.makeText(this, "Found the PDF at " + doc.pdfPath, Toast.LENGTH_LONG).show();
+        }
         if (foundPdf != null && doc.pdf != null) {
             // Found by name after the old link stopped working: remember the new place.
             doc.pdfUri = foundPdf.toString();
@@ -179,11 +186,12 @@ public class EditorActivity extends Activity implements CanvasView.Host {
 
     private void askForPdf() {
         String name = doc.pdfName == null ? "the background PDF" : new File(doc.pdfName).getName();
-        boolean needAccess = doc.pdfPath != null && !PdfLinks.hasFileAccess(this);
+        boolean needAccess = !PdfLinks.hasFileAccess(this);
         String where = doc.pdfPath != null ? "\n\nIt was at " + doc.pdfPath + "." : "";
         String msg = needAccess
-                ? "This note annotates " + name + "." + where + "\n\nAllow Markd to open files by their path "
-                + "(All files access) so linked PDFs are found automatically, or choose the PDF yourself."
+                ? "This note annotates " + name + ", and Markd can no longer open its link." + where
+                + "\n\nAllow all files access and Markd finds the PDF on this device by itself, "
+                + "or choose the PDF yourself."
                 : "This note annotates " + name + ", which was not found. It may have been moved, renamed or deleted."
                 + where + "\n\nChoose the PDF to link it again.";
         AlertDialog.Builder b = new AlertDialog.Builder(this)
@@ -1183,6 +1191,16 @@ public class EditorActivity extends Activity implements CanvasView.Host {
             if (byPath != null) {
                 Notes.copy(byPath, bg);
                 ok = true;
+            }
+            if (!ok && PdfLinks.hasFileAccess(this)) {
+                // With file access: the old link's real file, else a file with the same name.
+                File f = link[0] == null ? null : PdfLinks.readable(PdfLinks.realPath(this, Uri.parse(link[0])));
+                if (f == null) f = PdfLinks.findOnDevice(link[1]);
+                if (f != null) {
+                    Notes.copy(f, bg);
+                    foundPath = f.getPath();
+                    ok = true;
+                }
             }
             if (!ok) {
                 SafDocs.Entry found = SafDocs.child(getContentResolver(), treeUri, parentId, link[1]);

@@ -54,6 +54,16 @@ public final class PdfLinks {
                             Environment.DIRECTORY_DOWNLOADS), name).getPath();
                 }
                 if ("com.android.providers.media.documents".equals(authority)) {
+                    // While the picker's grant lasts, the matching MediaStore item can be read.
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        try {
+                            Uri media = MediaStore.getMediaUri(c, uri);
+                            String p = media == null ? null : query(c, media);
+                            if (p != null) return p;
+                        } catch (RuntimeException ignored) {
+                            // fall through
+                        }
+                    }
                     int colon = id.indexOf(':');
                     return colon < 0 ? null : mediaStorePath(c, id.substring(colon + 1));
                 }
@@ -110,6 +120,39 @@ public final class PdfLinks {
         if (path == null) return null;
         File f = new File(path);
         return f.isFile() && f.canRead() ? f : null;
+    }
+
+    /**
+     * Searches shared storage for a file called {@code name} (needs file access). Includes
+     * Android/media, where apps such as WhatsApp keep documents; skips Android/data and obb.
+     */
+    public static File findOnDevice(String name) {
+        if (name == null) return null;
+        File root = Environment.getExternalStorageDirectory();
+        java.util.ArrayDeque<File> queue = new java.util.ArrayDeque<>();
+        java.util.ArrayDeque<Integer> depth = new java.util.ArrayDeque<>();
+        queue.add(root);
+        depth.add(0);
+        int visited = 0;
+        while (!queue.isEmpty() && visited < 6000) {
+            File dir = queue.poll();
+            int d = depth.poll();
+            File[] kids = dir.listFiles();
+            visited++;
+            if (kids == null) continue;
+            for (File k : kids) {
+                if (k.isFile() && k.getName().equalsIgnoreCase(name)) return k;
+            }
+            if (d >= 8) continue;
+            for (File k : kids) {
+                if (!k.isDirectory() || k.getName().startsWith(".")) continue;
+                String rel = k.getPath().substring(root.getPath().length());
+                if (rel.startsWith("/Android/data") || rel.startsWith("/Android/obb")) continue;
+                queue.add(k);
+                depth.add(d + 1);
+            }
+        }
+        return null;
     }
 
     /** A PDF called {@code name} in the library tree, searching from {@code startId}. */
