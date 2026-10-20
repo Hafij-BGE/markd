@@ -78,6 +78,9 @@ public class EditorActivity extends Activity implements CanvasView.Host {
     /** Set when editing a note in the library folder: the local file is a working copy. */
     private Uri docUri, treeUri;
     private String parentId;
+    /** Set while loading when the PDF was found by name in the folder: the link to update. */
+    private volatile Uri foundPdf;
+    private boolean waitingForAccess;
 
     private TextView titleView, pageView;
     private ImageButton undoBtn, redoBtn;
@@ -143,6 +146,24 @@ public class EditorActivity extends Activity implements CanvasView.Host {
         openPdf();
         canvas.setup(doc, undo, tools, pdf, this);
         updateUndo();
+        if (foundPdf != null && doc.pdf != null) {
+            // Found by name after the old link stopped working: remember the new place.
+            doc.pdfUri = foundPdf.toString();
+            doc.pdfPath = PdfLinks.realPath(this, foundPdf);
+            foundPdf = null;
+            onEdited();
+            Toast.makeText(this, "Found " + new File(doc.pdfName == null ? "the PDF" : doc.pdfName).getName()
+                    + " in your folder", Toast.LENGTH_SHORT).show();
+        }
+        if (doc.pdf != null && doc.pdfUri != null && doc.pdfPath == null) {
+            // Notes from 0.24.1 have no path yet; add it while the link still works.
+            String path = PdfLinks.realPath(this, Uri.parse(doc.pdfUri));
+            if (path != null) {
+                doc.pdfPath = path;
+                dirty = true;
+                save(false, null);
+            }
+        }
         if (doc.pdfMissing) askForPdf();
     }
 
@@ -158,17 +179,40 @@ public class EditorActivity extends Activity implements CanvasView.Host {
 
     private void askForPdf() {
         String name = doc.pdfName == null ? "the background PDF" : new File(doc.pdfName).getName();
-        new AlertDialog.Builder(this)
+        boolean needAccess = doc.pdfPath != null && !PdfLinks.hasFileAccess(this);
+        String where = doc.pdfPath != null ? "\n\nIt was at " + doc.pdfPath + "." : "";
+        String msg = needAccess
+                ? "This note annotates " + name + "." + where + "\n\nAllow Markd to open files by their path "
+                + "(All files access) so linked PDFs are found automatically, or choose the PDF yourself."
+                : "This note annotates " + name + ", which was not found. It may have been moved, renamed or deleted."
+                + where + "\n\nChoose the PDF to link it again.";
+        AlertDialog.Builder b = new AlertDialog.Builder(this)
                 .setTitle("PDF not found")
-                .setMessage("This note annotates " + name + ", which is not on this device. Choose the PDF to attach it.")
+                .setMessage(msg)
                 .setPositiveButton("Choose PDF", (dl, w) -> {
                     Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
                     i.addCategory(Intent.CATEGORY_OPENABLE);
                     i.setType("application/pdf");
                     startActivityForResult(i, REQ_LOCATE_PDF);
                 })
-                .setNegativeButton("Not now", null)
-                .show();
+                .setNegativeButton("Not now", null);
+        if (needAccess) {
+            b.setNeutralButton("Allow access", (dl, w) -> {
+                waitingForAccess = true;
+                PdfLinks.requestFileAccess(this);
+            });
+        }
+        b.show();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (waitingForAccess && PdfLinks.hasFileAccess(this)) {
+            // Reopen so the PDF is found by its path.
+            waitingForAccess = false;
+            save(false, this::recreate);
+        }
     }
 
     // ------------------------------------------------------------------ UI
@@ -1123,12 +1167,30 @@ public class EditorActivity extends Activity implements CanvasView.Host {
         File bg = InkFile.bgPdfFor(note);
         bg.delete();
         String[] link = InkFile.readPdfLink(new java.io.FileInputStream(note));
-        if (link != null && link[0] != null) {
-            // Linked PDF: render from a local copy; the PDF itself is never changed.
-            try {
-                SafDocs.copy(getContentResolver(), Uri.parse(link[0]), bg);
-            } catch (IOException | RuntimeException e) {
-                bg.delete();
+        if (link != null && (link[0] != null || link[2] != null)) {
+            // Linked PDF, rendered from a local copy; the PDF itself is never changed.
+            // Try the saved link, then the saved path, then the same name in the folder.
+            boolean ok = false;
+            if (link[0] != null) {
+                try {
+                    SafDocs.copy(getContentResolver(), Uri.parse(link[0]), bg);
+                    ok = true;
+                } catch (IOException | RuntimeException e) {
+                    bg.delete();
+                }
+            }
+            File byPath = ok ? null : PdfLinks.readable(link[2]);
+            if (byPath != null) {
+                Notes.copy(byPath, bg);
+                ok = true;
+            }
+            if (!ok) {
+                SafDocs.Entry found = SafDocs.child(getContentResolver(), treeUri, parentId, link[1]);
+                if (found == null) found = PdfLinks.findByName(getContentResolver(), treeUri, SafDocs.rootId(treeUri), link[1], 5);
+                if (found != null) {
+                    SafDocs.copy(getContentResolver(), found.uri, bg);
+                    foundPdf = found.uri;
+                }
             }
         } else {
             // Older notes keep an attached copy next to them.
@@ -1140,14 +1202,57 @@ public class EditorActivity extends Activity implements CanvasView.Host {
 
     /** Links the chosen PDF to the note; falls back to an attached copy if the grant cannot be kept. */
     private void linkBackground(Uri pdf, File bg) throws IOException {
+        String oldUri = doc.pdfUri, oldPath = doc.pdfPath;
+        String oldName = doc.pdfName == null ? null : new File(doc.pdfName).getName();
         try {
             getContentResolver().takePersistableUriPermission(pdf, Intent.FLAG_GRANT_READ_URI_PERMISSION);
             doc.pdfUri = pdf.toString();
             doc.pdfName = Notes.displayName(this, pdf, "document.pdf");
+            doc.pdfPath = PdfLinks.realPath(this, pdf);
+            relinkOthers(oldUri, oldPath, oldName, doc.pdfUri, doc.pdfPath, doc.pdfName);
         } catch (SecurityException e) {
             doc.pdfUri = null;
             pushBackground(bg);
         }
+    }
+
+    /**
+     * Other notes in this folder that pointed at the same missing PDF get the new link too.
+     * Runs in the background; reports how many were updated.
+     */
+    private void relinkOthers(String oldUri, String oldPath, String oldName, String newUri, String newPath, String newName) {
+        if (oldUri == null && oldPath == null && oldName == null) return;
+        String self = docUri.toString();
+        io.execute(() -> {
+            int n = 0;
+            File dir = new File(getCacheDir(), "share/relink");
+            dir.mkdirs();
+            for (SafDocs.Entry e : SafDocs.list(getContentResolver(), treeUri, parentId)) {
+                if (!e.name.endsWith(InkFile.EXT) || e.uri.toString().equals(self)) continue;
+                try {
+                    String[] l = InkFile.readPdfLink(getContentResolver().openInputStream(e.uri));
+                    if (l == null) continue;
+                    boolean same = (oldUri != null && oldUri.equals(l[0])) || (oldPath != null && oldPath.equals(l[2]))
+                            || (oldUri == null && oldPath == null && l[0] == null && oldName != null && oldName.equals(l[1]));
+                    if (!same) continue;
+                    File tmp = new File(dir, e.name);
+                    SafDocs.copy(getContentResolver(), e.uri, tmp);
+                    Doc d = InkFile.read(tmp);
+                    d.pdfUri = newUri;
+                    d.pdfPath = newPath;
+                    d.pdfName = newName;
+                    InkFile.write(d, tmp, null);
+                    SafDocs.copy(getContentResolver(), tmp, e.uri);
+                    tmp.delete();
+                    n++;
+                } catch (IOException | RuntimeException ignored) {
+                    // leave that note as it was
+                }
+            }
+            int count = n;
+            if (count > 0) main.post(() -> Toast.makeText(this, "Also relinked " + count + " other note"
+                    + (count == 1 ? "" : "s") + " to this PDF", Toast.LENGTH_SHORT).show());
+        });
     }
 
     /** Writes a background PDF next to the note in the library folder. */

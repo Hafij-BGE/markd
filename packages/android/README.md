@@ -79,11 +79,17 @@ home screen and the Inkwell drawing / PDF-annotation canvas
 | `assets/` | Images inserted into Markdown files |
 | `*.ink.bg.pdf` | Attached PDF copy from 0.24.0 notes; still read, no longer written |
 
-A PDF annotation stores the PDF's file name (`domain="absolute"`, so desktop
-Xournal++ finds a PDF lying next to the note) and its content URI in an
-`inkwell-uri` attribute on the first PDF `<background>`. Annotating a PDF from
-elsewhere keeps a read grant to it; if Android does not allow that, the PDF is
-copied into the folder and the note links to the copy.
+A PDF annotation stores the PDF's real path as Xournal++'s absolute
+`filename` (e.g. `/storage/emulated/0/Download/X.pdf`) and its content URI in
+an `inkwell-uri` attribute on the first PDF `<background>`. To open it, Markd
+tries the URI, then the path, then a PDF with the same name next to the note
+and anywhere in the folder, and only then asks you to choose it; choosing it
+relinks every note in that folder that used the same PDF.
+
+Android forgets an app's URI grants when it is uninstalled. Opening a PDF by
+its path needs *All files access* (asked for when needed, or Home → ⋮ → *Allow
+all files access*), so after a reinstall linked PDFs are found again unless
+they were moved.
 
 ## How it fits together
 

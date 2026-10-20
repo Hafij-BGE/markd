@@ -154,6 +154,7 @@ public final class InkFile {
                 doc.pdfName = name;
                 String link = p.getAttributeValue(null, LINK_ATTR);
                 if (link != null) doc.pdfUri = link;
+                if (name.startsWith("/")) doc.pdfPath = name;
                 File f = null;
                 if ("attach".equals(domain)) {
                     f = new File(noteFile.getPath() + "." + name);
@@ -246,7 +247,7 @@ public final class InkFile {
     }
 
     /**
-     * The PDF a note annotates: {uri (may be null), filename}, read from the first PDF
+     * The PDF a note annotates: {uri (may be null), file name, absolute path (may be null)}, read from the first PDF
      * background; null for drawings. Closes the stream.
      */
     public static String[] readPdfLink(InputStream raw) {
@@ -260,7 +261,8 @@ public final class InkFile {
                     if (!"pdf".equals(p.getAttributeValue(null, "type"))) return null;
                     String name = p.getAttributeValue(null, "filename");
                     if (name == null) continue;
-                    return new String[]{p.getAttributeValue(null, LINK_ATTR), new File(name).getName()};
+                    return new String[]{p.getAttributeValue(null, LINK_ATTR), new File(name).getName(),
+                            name.startsWith("/") ? name : null};
                 }
                 if ("layer".equals(p.getName())) continue;
             }
@@ -384,7 +386,8 @@ public final class InkFile {
                         if (doc.pdfUri != null) {
                             // Linked PDF: the name keeps desktop Xournal++ working when the PDF sits
                             // next to the note; the uri is how the app finds it.
-                            String name = doc.pdfName == null ? "document.pdf" : new File(doc.pdfName).getName();
+                            String name = doc.pdfPath != null ? doc.pdfPath
+                                    : doc.pdfName == null ? "document.pdf" : new File(doc.pdfName).getName();
                             w.write(" domain=\"absolute\" filename=\"" + esc(name) + "\" " + LINK_ATTR + "=\"" + esc(doc.pdfUri) + "\"");
                         } else {
                             w.write(" domain=\"attach\" filename=\"bg.pdf\"");

@@ -123,7 +123,9 @@ see it, and it survives uninstalling the app.
 - Drawings are `.ink` files in the Xournal++ file format: rename one to `.xopp`
   to open it in desktop Xournal++, and desktop `.xopp` files open in Markd.
 - **Your PDFs are never copied or changed.** An annotation is a small `.ink`
-  file linked to the PDF. A PDF can have several; tapping it lets you pick
+  file that remembers where the PDF is, so it is found again even after
+  reinstalling the app (allow *All files access* when asked) unless the PDF
+  was moved. A PDF can have several annotations; tapping it lets you pick
   one, delete one or start another.
 - *Export PDF to folder* saves a copy with your ink drawn in. The original
   pages stay sharp and their text stays selectable.

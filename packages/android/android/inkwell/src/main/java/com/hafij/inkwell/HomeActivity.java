@@ -715,6 +715,7 @@ public class HomeActivity extends Activity {
         doc.pdf = null;
         doc.pdfUri = pdf.toString();
         doc.pdfName = pdfName;
+        doc.pdfPath = PdfLinks.realPath(this, pdf);
         Uri note = SafDocs.create(cr, tree, parentId, "application/octet-stream", name);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         InkFile.write(doc, out, null);
@@ -848,9 +849,18 @@ public class HomeActivity extends Activity {
     private void moreMenu(View anchor) {
         PopupMenu m = new PopupMenu(this, anchor);
         m.getMenu().add(0, 1, 0, "Change folder…");
-        m.getMenu().add(0, 2, 1, "About");
+        m.getMenu().add(0, 3, 1, PdfLinks.hasFileAccess(this) ? "All files access: on" : "Allow all files access…");
+        m.getMenu().add(0, 2, 2, "About");
         m.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == 1) chooseFolder();
+            else if (item.getItemId() == 3) {
+                new AlertDialog.Builder(this).setTitle("All files access")
+                        .setMessage("Annotations remember where their PDF is. With all files access, Markd opens "
+                                + "a linked PDF by its path, so it is still found after the app is reinstalled. "
+                                + "Without it, you may need to choose the PDF again.")
+                        .setPositiveButton("Open settings", (d, w) -> PdfLinks.requestFileAccess(this))
+                        .setNegativeButton(android.R.string.cancel, null).show();
+            }
             else {
                 new AlertDialog.Builder(this).setTitle("Markd")
                         .setMessage("Markdown, drawings and PDF annotation in one place.\n\n"
@@ -1205,7 +1215,15 @@ public class HomeActivity extends Activity {
                     Bitmap b = InkFile.readPreview(cr.openInputStream(e.uri));
                     if (b != null) return b;
                     String[] link = linkOf(e);
-                    if (link != null && link[0] != null) return renderPdf(Uri.parse(link[0]));
+                    if (link != null && link[0] != null) {
+                        try {
+                            return renderPdf(Uri.parse(link[0]));
+                        } catch (IOException | RuntimeException ignored) {
+                            // grant gone (e.g. after reinstall); try the saved path
+                        }
+                    }
+                    File byPath = link == null || link.length < 3 ? null : PdfLinks.readable(link[2]);
+                    if (byPath != null) return renderPdf(Uri.fromFile(byPath));
                     SafDocs.Entry bg = SafDocs.child(cr, tree, parent, e.name + InkFile.BG_SUFFIX);
                     return bg == null ? null : renderPdf(bg.uri);
                 }
@@ -1222,7 +1240,9 @@ public class HomeActivity extends Activity {
     }
 
     private Bitmap renderPdf(Uri uri) throws IOException {
-        try (ParcelFileDescriptor fd = getContentResolver().openFileDescriptor(uri, "r");
+        try (ParcelFileDescriptor fd = "file".equals(uri.getScheme())
+                ? ParcelFileDescriptor.open(new File(uri.getPath()), ParcelFileDescriptor.MODE_READ_ONLY)
+                : getContentResolver().openFileDescriptor(uri, "r");
              PdfRenderer r = new PdfRenderer(fd);
              PdfRenderer.Page p = r.openPage(0)) {
             int w = 300, h = Math.max(1, Math.round(300f * p.getHeight() / p.getWidth()));

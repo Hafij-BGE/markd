@@ -16,6 +16,8 @@ public class Doc {
     public String pdfName;
     /** Content uri of the linked PDF (it stays where it is), or null for an attached copy. */
     public String pdfUri;
+    /** Real file path of the linked PDF when known (written as Xournal++'s absolute filename). */
+    public String pdfPath;
     /** True if pages reference a PDF that could not be found. */
     public boolean pdfMissing;
 
@@ -34,6 +36,7 @@ public class Doc {
         d.pdf = pdf;
         d.pdfName = pdfName;
         d.pdfUri = pdfUri;
+        d.pdfPath = pdfPath;
         d.pdfMissing = pdfMissing;
         for (Page p : pages) {
             Page c = new Page();
