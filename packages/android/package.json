@@ -1,6 +1,6 @@
 {
   "name": "@markd/android",
-  "version": "0.24.3",
+  "version": "0.24.4",
   "private": true,
   "description": "Markd for Android: WebView app hosting the @muyajs/core editor",
   "license": "MIT",

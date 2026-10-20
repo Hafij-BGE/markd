@@ -143,9 +143,12 @@ see it, and it survives uninstalling the app.
 2. Open it and allow *Install unknown apps* for your browser or file manager when Android asks.
 3. Open Markd, tap **Choose folder** and pick or create a folder for your files (for example `Documents/Markd`).
 
-The APK is debug-signed. If Android refuses to update an existing Markd with
-"package conflicts", that copy was signed by a different build: uninstall it
-first. Your files in the chosen folder are not affected.
+From 0.24.4 every release APK is signed with the same key, so a new version
+installs over the old one and keeps your settings. APKs from 0.24.3 and earlier
+releases were each signed with a different key: if Android says "package
+conflicts with an existing package", uninstall Markd once and install the new
+APK. Your files in the chosen folder are not affected; pick the same folder
+again on first launch.
 
 ## Build from source
 

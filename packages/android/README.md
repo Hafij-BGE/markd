@@ -188,4 +188,9 @@ handwriting. In the APK, debug builds allow remote debugging: open
 - `.github/workflows/android.yml` builds a debug APK for pull requests that
   touch `packages/android` or `packages/muya`.
 - `.github/workflows/release.yml` builds the APK on `v*` tags and attaches it
-  to the GitHub release, next to the desktop builds.
+  to the GitHub release, next to the desktop builds. It signs the debug APK
+  with the keystore in the `MARKD_DEBUG_KEYSTORE_B64` secret (base64; store and
+  key password `android`, alias `androiddebugkey` unless
+  `MARKD_DEBUG_KEYSTORE_PASSWORD` / `MARKD_DEBUG_KEY_ALIAS` /
+  `MARKD_DEBUG_KEY_PASSWORD` say otherwise), so every release updates the
+  previous install. Locally, set `MARKD_DEBUG_KEYSTORE` to the same file.
