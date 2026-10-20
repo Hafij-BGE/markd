@@ -3,6 +3,7 @@
 import { currentMarkdown, getMuya, insertImageAtCursor, notifyChange, rememberCursor, setEditorOptions } from './editor'
 import { pickImage, storeImageBlob } from './document'
 import { openSketch } from './ink'
+import { drawInInkwell, inkwellAvailable } from './inkwell'
 import { callNative, isNative, type HostInfo } from './native'
 import { settings, updateSettings } from './settings'
 import { h, pushBack, showDialog, toast } from './ui'
@@ -55,6 +56,29 @@ export const insertPicture = guard(async() => {
 })
 
 export const insertSketch = guard(async() => {
+  rememberCursor()
+  getMuya().blur()
+  let blob: Blob | null = null
+  if (await inkwellAvailable()) {
+    try {
+      blob = await drawInInkwell()
+      if (!blob) return
+    } catch (err) {
+      toast(`Inkwell: ${(err as Error).message}. Using the built-in pad.`)
+    }
+  }
+  if (!blob) {
+    const result = await openSketch()
+    if (!result) return
+    blob = result.blob
+  }
+  const src = await storeImageBlob(blob, 'sketch')
+  insertImageAtCursor(src, 'Sketch')
+  toast('Sketch inserted')
+})
+
+/** The simple built-in pad (Draw → Quick sketch). */
+export const insertQuickSketch = guard(async() => {
   rememberCursor()
   getMuya().blur()
   const result = await openSketch()

@@ -28,14 +28,26 @@ standalone `@muyajs/core` editor from `packages/muya`. The Electron renderer in
     and Android turns the writing into text at that spot. The editor never
     cancels pen events. Draw → *Pen to text* turns this on or off
     (`View.setAutoHandwritingEnabled`).
-  - **Sketch pad** (Insert/Draw → *Sketch*). It has pressure-sensitive ink, a
-    highlighter, and a stroke eraser. Tilting the pen gives broader strokes, and
+  - **Sketch** (Insert/Draw → *Sketch*) opens the built-in Inkwell canvas: pen
+    with pressure, highlighter, eraser, shapes, text, images and selection. The
+    result is an SVG that carries the whole drawing, so tapping it later shows
+    *Edit in Inkwell*.
+  - **Quick sketch** (Draw) is the simple pad: pressure-sensitive ink, a
+    highlighter and a stroke eraser. Tilting the pen gives broader strokes, and
     hovering shows a preview of the tip.
   - **Palm rejection**: touches are ignored while a pen is in use.
   - The pen's eraser end, or its side button, erases strokes.
-  - Undo and redo work in the sketch pad.
-  - The sketch is inserted as a PNG or SVG in `assets/` next to the `.md` file.
-    If the app cannot reach that folder, the image is embedded in the document.
+  - Sketches are inserted in `assets/` next to the `.md` file. If the app
+    cannot reach that folder, the image is embedded in the document.
+- **Home screen** (the launcher; File → *Home* returns to it): one grid for a
+  folder you pick (e.g. Documents/Markd) with Markdown files, drawings and
+  annotated PDFs, subfolders, search, sort, pins and a *Recent* row that also
+  lists Markdown opened from elsewhere. **+** creates Markdown, a drawing, a PDF
+  annotation, a folder, or imports a file. Markdown opens in the editor;
+  drawings and PDFs open in the Inkwell canvas (modelled on Xournal++). Drawings
+  are `.ink` files (Xournal++ file structure; desktop `.xopp` files import); an
+  annotated PDF is copied next to its note as `<note>.ink.bg.pdf` and never
+  changed, and *Export as PDF* writes a vector PDF with the ink drawn in.
   - The status bar shows pen hover, pressure, and tilt.
 
 ## How it fits together
@@ -45,12 +57,15 @@ src/                 web app (TypeScript, Vite) → android/app/src/main/assets/
   editor.ts          muya setup; maps relative image paths to the /doc/ route
   ribbon.ts          ribbon tabs and groups
   document.ts        open / save / recent files / image assets (via native.ts)
-  ink.ts, pen.ts     sketch pad and stylus status
+  ink.ts, pen.ts     quick sketch pad and stylus status
+  inkwell.ts         Sketch / Notes & PDFs through the Inkwell module
   export.ts          HTML / PDF / DOCX
 android/             Gradle project
   MainActivity.java  WebView host, serves https://appassets.androidplatform.net
   Bridge.java        JS ⇄ native calls (SAF pickers, file IO, printing)
   DocStore.java      Storage Access Framework helpers
+android/inkwell/     Inkwell library module (Java, PdfBox-Android): notes, PDF
+                     annotation and the Sketch canvas; see its README
 ```
 
 The page is served from `https://appassets.androidplatform.net`:
