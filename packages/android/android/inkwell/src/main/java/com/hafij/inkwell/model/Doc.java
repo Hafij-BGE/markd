@@ -14,6 +14,8 @@ public class Doc {
     public File pdf;
     /** The PDF filename recorded in the note, used in "PDF not found" messages. */
     public String pdfName;
+    /** Content uri of the linked PDF (it stays where it is), or null for an attached copy. */
+    public String pdfUri;
     /** True if pages reference a PDF that could not be found. */
     public boolean pdfMissing;
 
@@ -31,6 +33,7 @@ public class Doc {
         Doc d = new Doc();
         d.pdf = pdf;
         d.pdfName = pdfName;
+        d.pdfUri = pdfUri;
         d.pdfMissing = pdfMissing;
         for (Page p : pages) {
             Page c = new Page();

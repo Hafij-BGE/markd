@@ -3,7 +3,7 @@ plugins {
 }
 
 // CI passes -PmarkdVersion=1.2.3 from the release tag.
-def markdVersion = (project.findProperty('markdVersion') ?: '0.24.0').toString()
+def markdVersion = (project.findProperty('markdVersion') ?: '0.24.1').toString()
 def versionParts = markdVersion.replaceAll(/[-+].*$/, '').tokenize('.').collect { it.isInteger() ? it.toInteger() : 0 }
 while (versionParts.size() < 3) versionParts << 0
 def markdVersionCode = versionParts[0] * 10000 + versionParts[1] * 100 + versionParts[2]

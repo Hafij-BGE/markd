@@ -499,7 +499,7 @@ public class EditorActivity extends Activity implements CanvasView.Host {
         boolean sketch = isSketch();
         if (!sketch) {
             menu.add(0, M_SAVE, 0, "Save");
-            menu.add(0, M_EXPORT, 1, "Export as PDF…");
+            menu.add(0, M_EXPORT, 1, docUri != null ? "Export PDF to folder" : "Export as PDF…");
             menu.add(0, M_SHARE, 2, "Share as PDF");
             menu.add(0, M_SHARE_INK, 3, "Share note file (.ink)");
         }
@@ -529,6 +529,10 @@ public class EditorActivity extends Activity implements CanvasView.Host {
                 save(true, null);
                 break;
             case M_EXPORT: {
+                if (docUri != null) {
+                    exportToFolder();
+                    break;
+                }
                 Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
                 i.addCategory(Intent.CATEGORY_OPENABLE);
                 i.setType("application/pdf");
@@ -845,7 +849,7 @@ public class EditorActivity extends Activity implements CanvasView.Host {
             File bg = InkFile.bgPdfFor(note);
             try {
                 Notes.copy(getContentResolver(), uri, bg);
-                if (docUri != null) pushBackground(bg);
+                if (docUri != null) linkBackground(uri, bg);
                 doc.pdf = bg;
                 doc.pdfMissing = false;
                 openPdf();
@@ -904,9 +908,28 @@ public class EditorActivity extends Activity implements CanvasView.Host {
         });
     }
 
+    /**
+     * Writes "&lt;note&gt;.pdf" (or "&lt;note&gt; (annotated).pdf" for a PDF annotation) next to the
+     * note in the library folder, asking before replacing a file.
+     */
+    private void exportToFolder() {
+        String title = Notes.title(note);
+        String name = title + (doc.usesPdf() ? " (annotated)" : "") + ".pdf";
+        SafDocs.Entry existing = SafDocs.child(getContentResolver(), treeUri, parentId, name);
+        Runnable go = () -> exportTo(null, existing != null ? existing.uri : null, name);
+        if (existing == null) go.run();
+        else new AlertDialog.Builder(this).setMessage("Replace “" + name + "” in the folder?")
+                .setPositiveButton("Replace", (d, w) -> go.run())
+                .setNegativeButton(android.R.string.cancel, null).show();
+    }
+
+    private void exportTo(Uri uri) {
+        exportTo(uri, null, null);
+    }
+
     /** Exports a vector PDF to {@code uri}, or shares it when uri is null. */
     @SuppressWarnings("deprecation")
-    private void exportTo(Uri uri) {
+    private void exportTo(Uri uri, Uri folderTarget, String folderName) {
         Doc snap = doc.snapshot();
         ProgressDialog pd = new ProgressDialog(this);
         pd.setMessage("Exporting PDF…");
@@ -921,9 +944,15 @@ public class EditorActivity extends Activity implements CanvasView.Host {
             try {
                 PdfExport.export(snap, out, (done, total) -> main.post(() -> pd.setProgress(done)));
                 if (uri != null) Notes.copy(getContentResolver(), out, uri);
+                if (folderName != null) {
+                    Uri target = folderTarget != null ? folderTarget
+                            : SafDocs.create(getContentResolver(), treeUri, parentId, "application/pdf", folderName);
+                    SafDocs.copy(getContentResolver(), out, target);
+                }
                 main.post(() -> {
                     pd.dismiss();
-                    if (uri == null) ShareProvider.share(this, out, "application/pdf");
+                    if (folderName != null) Toast.makeText(this, "Saved “" + folderName + "” in the folder", Toast.LENGTH_LONG).show();
+                    else if (uri == null) ShareProvider.share(this, out, "application/pdf");
                     else Toast.makeText(this, "PDF exported", Toast.LENGTH_SHORT).show();
                 });
             } catch (IOException | RuntimeException | OutOfMemoryError e) {
@@ -975,13 +1004,36 @@ public class EditorActivity extends Activity implements CanvasView.Host {
     private void pullFromFolder() throws IOException {
         SafDocs.copy(getContentResolver(), docUri, note);
         File bg = InkFile.bgPdfFor(note);
-        SafDocs.Entry sibling = SafDocs.child(getContentResolver(), treeUri, parentId, note.getName() + InkFile.BG_SUFFIX);
-        if (sibling != null) SafDocs.copy(getContentResolver(), sibling.uri, bg);
-        else bg.delete();
+        bg.delete();
+        String[] link = InkFile.readPdfLink(new java.io.FileInputStream(note));
+        if (link != null && link[0] != null) {
+            // Linked PDF: render from a local copy; the PDF itself is never changed.
+            try {
+                SafDocs.copy(getContentResolver(), Uri.parse(link[0]), bg);
+            } catch (IOException | RuntimeException e) {
+                bg.delete();
+            }
+        } else {
+            // Older notes keep an attached copy next to them.
+            SafDocs.Entry sibling = SafDocs.child(getContentResolver(), treeUri, parentId, note.getName() + InkFile.BG_SUFFIX);
+            if (sibling != null) SafDocs.copy(getContentResolver(), sibling.uri, bg);
+        }
         Recents.add(this, docUri.toString(), note.getName());
     }
 
-    /** Writes a newly attached background PDF next to the note in the library folder. */
+    /** Links the chosen PDF to the note; falls back to an attached copy if the grant cannot be kept. */
+    private void linkBackground(Uri pdf, File bg) throws IOException {
+        try {
+            getContentResolver().takePersistableUriPermission(pdf, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            doc.pdfUri = pdf.toString();
+            doc.pdfName = Notes.displayName(this, pdf, "document.pdf");
+        } catch (SecurityException e) {
+            doc.pdfUri = null;
+            pushBackground(bg);
+        }
+    }
+
+    /** Writes a background PDF next to the note in the library folder. */
     private void pushBackground(File bg) throws IOException {
         String name = note.getName() + InkFile.BG_SUFFIX;
         SafDocs.Entry sibling = SafDocs.child(getContentResolver(), treeUri, parentId, name);

@@ -100,6 +100,10 @@ public class HomeActivity extends Activity {
     private String query = "";
     private int listGeneration;
     private Uri pendingImport;
+    /** Note uri|modified → {pdf uri or null, pdf file name}; empty array for drawings. */
+    private final java.util.Map<String, String[]> linkCache = new java.util.concurrent.ConcurrentHashMap<>();
+    /** PDF document id or "name:" + file name → notes in the shown folder that annotate it. */
+    private final java.util.Map<String, List<SafDocs.Entry>> links = new java.util.HashMap<>();
 
     @Override
     protected void onCreate(Bundle state) {
@@ -316,8 +320,11 @@ public class HomeActivity extends Activity {
             } else {
                 collect(parent, q, found, 0);
             }
+            java.util.Map<String, List<SafDocs.Entry>> l = linksIn(found);
             main.post(() -> {
                 if (gen != listGeneration) return;
+                links.clear();
+                links.putAll(l);
                 showItems(found, searching);
             });
         });
@@ -477,6 +484,80 @@ public class HomeActivity extends Activity {
         }
     }
 
+    // ------------------------------------------------------------------ PDF ↔ note links
+
+    /** The PDF a note annotates (cached), or null for a drawing. Runs off the UI thread. */
+    private String[] linkOf(SafDocs.Entry note) {
+        String key = note.uri + "|" + note.modified;
+        String[] l = linkCache.get(key);
+        if (l == null) {
+            try {
+                l = InkFile.readPdfLink(getContentResolver().openInputStream(note.uri));
+            } catch (IOException | RuntimeException e) {
+                l = null;
+            }
+            if (l == null) l = new String[0];
+            linkCache.put(key, l);
+        }
+        return l.length == 0 ? null : l;
+    }
+
+    private static String pdfKey(String uri, String name) {
+        if (uri != null) {
+            try {
+                return DocumentsContract.getDocumentId(Uri.parse(uri));
+            } catch (RuntimeException ignored) {
+                // not a document uri; fall back to the name
+            }
+        }
+        return "name:" + name;
+    }
+
+    /** Groups the notes in {@code entries} by the PDF they annotate. */
+    private java.util.Map<String, List<SafDocs.Entry>> linksIn(List<SafDocs.Entry> entries) {
+        java.util.Map<String, List<SafDocs.Entry>> map = new java.util.HashMap<>();
+        for (SafDocs.Entry e : entries) {
+            if (kind(e) != Kind.NOTE) continue;
+            String[] l = linkOf(e);
+            if (l == null) continue;
+            // A note may be found by its PDF's document id or, for desktop notes, by file name.
+            for (String key : new String[]{l[0] == null ? null : pdfKey(l[0], l[1]), "name:" + l[1]}) {
+                if (key == null) continue;
+                List<SafDocs.Entry> list = map.get(key);
+                if (list == null) map.put(key, list = new ArrayList<>());
+                if (!list.contains(e)) list.add(e);
+            }
+        }
+        return map;
+    }
+
+    /** Notes in the PDF's folder that annotate it, newest first. Runs off the UI thread. */
+    private List<SafDocs.Entry> notesFor(SafDocs.Entry pdf, String parentId) {
+        java.util.Map<String, List<SafDocs.Entry>> map = linksIn(SafDocs.list(getContentResolver(), tree, parentId));
+        List<SafDocs.Entry> out = new ArrayList<>();
+        List<SafDocs.Entry> byId = map.get(pdf.docId);
+        if (byId != null) out.addAll(byId);
+        List<SafDocs.Entry> byName = map.get("name:" + pdf.name);
+        if (byName != null) {
+            for (SafDocs.Entry e : byName) {
+                String[] l = linkOf(e);
+                // Name matches only count when the note has no uri, or its uri is this PDF.
+                if (!out.contains(e) && (l[0] == null || pdfKey(l[0], l[1]).equals(pdf.docId))) out.add(e);
+            }
+        }
+        out.sort((a, b) -> Long.compare(b.modified, a.modified));
+        return out;
+    }
+
+    private int linkedCount(SafDocs.Entry pdf) {
+        Set<SafDocs.Entry> all = new HashSet<>();
+        List<SafDocs.Entry> a = links.get(pdf.docId);
+        if (a != null) all.addAll(a);
+        List<SafDocs.Entry> b = links.get("name:" + pdf.name);
+        if (b != null) all.addAll(b);
+        return all.size();
+    }
+
     // ------------------------------------------------------------------ opening
 
     private void open(SafDocs.Entry e) {
@@ -535,22 +616,84 @@ public class HomeActivity extends Activity {
         startActivity(i);
     }
 
-    /** Opens (creating if needed) "&lt;name&gt;.ink" that annotates a copy of the PDF. */
-    @SuppressWarnings("deprecation")
+    /**
+     * Tapping a PDF: no notes yet → start one; one → open it; several → choose one, delete
+     * one, or start another.
+     */
     private void annotate(SafDocs.Entry pdf, String parentId) {
-        String base = Notes.sanitize(Notes.stripExt(pdf.name));
-        SafDocs.Entry existing = SafDocs.child(getContentResolver(), tree, parentId, base + InkFile.EXT);
-        if (existing != null) {
-            openNote(existing.uri, parentId, existing.name);
-            return;
+        io.execute(() -> {
+            List<SafDocs.Entry> notes = notesFor(pdf, parentId);
+            main.post(() -> {
+                if (notes.isEmpty()) newAnnotation(pdf.uri, pdf.name, parentId);
+                else if (notes.size() == 1) openNote(notes.get(0).uri, parentId, notes.get(0).name);
+                else chooseAnnotation(pdf, parentId, notes);
+            });
+        });
+    }
+
+    private void chooseAnnotation(SafDocs.Entry pdf, String parentId, List<SafDocs.Entry> notes) {
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(Ui.dp(this, 12), Ui.dp(this, 4), Ui.dp(this, 12), 0);
+        AlertDialog[] dialog = new AlertDialog[1];
+        for (SafDocs.Entry n : notes) {
+            LinearLayout row = new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setBackground(Ui.ripple(this, 0));
+            row.setPadding(Ui.dp(this, 8), Ui.dp(this, 6), 0, Ui.dp(this, 6));
+            ImageView icon = new ImageView(this);
+            icon.setImageResource(R.drawable.ic_tool_pencil);
+            row.addView(icon, new LinearLayout.LayoutParams(Ui.dp(this, 22), Ui.dp(this, 22)));
+            LinearLayout texts = new LinearLayout(this);
+            texts.setOrientation(LinearLayout.VERTICAL);
+            texts.setPadding(Ui.dp(this, 12), 0, 0, 0);
+            texts.addView(Ui.label(this, displayTitle(n.name), 16));
+            TextView when = Ui.label(this, "Edited " + DateUtils.getRelativeTimeSpanString(n.modified), 13);
+            when.setAlpha(0.6f);
+            texts.addView(when);
+            row.addView(texts, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+            row.addView(Ui.icon(this, R.drawable.ic_trash, "Delete " + displayTitle(n.name), v ->
+                    new AlertDialog.Builder(this)
+                            .setMessage("Delete the annotation “" + displayTitle(n.name) + "”? The PDF is kept.")
+                            .setPositiveButton("Delete", (d, w) -> {
+                                deleteNote(n, parentId);
+                                dialog[0].dismiss();
+                                refresh();
+                            })
+                            .setNegativeButton(android.R.string.cancel, null).show()));
+            row.setOnClickListener(v -> {
+                dialog[0].dismiss();
+                openNote(n.uri, parentId, n.name);
+            });
+            list.addView(row);
         }
-        ProgressDialog pd = ProgressDialog.show(this, null, "Preparing " + pdf.name + "…", true, false);
+        dialog[0] = new AlertDialog.Builder(this)
+                .setTitle("Annotations of " + displayTitle(pdf.name))
+                .setView(list)
+                .setPositiveButton("New annotation", (d, w) -> newAnnotation(pdf.uri, pdf.name, parentId))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void deleteNote(SafDocs.Entry note, String parentId) {
+        SafDocs.Entry bg = SafDocs.child(getContentResolver(), tree, parentId, note.name + InkFile.BG_SUFFIX);
+        if (bg != null) SafDocs.delete(getContentResolver(), bg.uri);
+        SafDocs.delete(getContentResolver(), note.uri);
+        Recents.remove(this, note.uri.toString());
+    }
+
+    /** Creates "&lt;pdf name&gt;.ink" in {@code parentId} linked to the PDF, then opens it. */
+    @SuppressWarnings("deprecation")
+    private void newAnnotation(Uri pdf, String pdfName, String parentId) {
+        ProgressDialog pd = ProgressDialog.show(this, null, "Preparing " + pdfName + "…", true, false);
         io.execute(() -> {
             try {
-                Uri note = createPdfNote(pdf.uri, parentId, base);
-                String name = base + InkFile.EXT;
+                String name = SafDocs.uniqueName(getContentResolver(), tree, parentId,
+                        Notes.sanitize(Notes.stripExt(pdfName)), InkFile.EXT);
+                Uri note = createLinkedNote(pdf, pdfName, parentId, name);
                 main.post(() -> {
                     pd.dismiss();
+                    refresh();
                     openNote(note, parentId, name);
                 });
             } catch (IOException | RuntimeException e) {
@@ -562,21 +705,46 @@ public class HomeActivity extends Activity {
         });
     }
 
-    /** Copies a PDF next to a new note and writes the note; runs off the UI thread. */
-    private Uri createPdfNote(Uri pdf, String parentId, String base) throws IOException {
+    /** Writes a note whose pages show the PDF, which stays where it is. Off the UI thread. */
+    private Uri createLinkedNote(Uri pdf, String pdfName, String parentId, String name) throws IOException {
         ContentResolver cr = getContentResolver();
         File tmp = new File(getCacheDir(), "import.pdf");
         SafDocs.copy(cr, pdf, tmp);
         Doc doc = Notes.pdfDoc(tmp);
-        SafDocs.Entry old = SafDocs.child(cr, tree, parentId, base + InkFile.EXT + InkFile.BG_SUFFIX);
-        Uri bg = old != null ? old.uri : SafDocs.create(cr, tree, parentId, "application/pdf", base + InkFile.EXT + InkFile.BG_SUFFIX);
-        SafDocs.copy(cr, tmp, bg);
-        Uri note = SafDocs.create(cr, tree, parentId, "application/octet-stream", base + InkFile.EXT);
+        tmp.delete();
+        doc.pdf = null;
+        doc.pdfUri = pdf.toString();
+        doc.pdfName = pdfName;
+        Uri note = SafDocs.create(cr, tree, parentId, "application/octet-stream", name);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         InkFile.write(doc, out, null);
         SafDocs.write(cr, note, out.toByteArray());
-        tmp.delete();
         return note;
+    }
+
+    /**
+     * A PDF from outside the folder: keep a read grant and link to it where it is. If the
+     * grant cannot be kept, copy the PDF into the folder and link to the copy.
+     */
+    private void annotateExternal(Uri pdf) {
+        String pdfName = Notes.displayName(this, pdf, "document.pdf");
+        String parent = currentId();
+        try {
+            getContentResolver().takePersistableUriPermission(pdf, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            newAnnotation(pdf, pdfName, parent);
+        } catch (SecurityException e) {
+            io.execute(() -> {
+                try {
+                    String name = SafDocs.uniqueName(getContentResolver(), tree, parent,
+                            Notes.sanitize(Notes.stripExt(pdfName)), ".pdf");
+                    Uri copy = SafDocs.create(getContentResolver(), tree, parent, "application/pdf", name);
+                    SafDocs.copy(getContentResolver(), pdf, copy);
+                    main.post(() -> newAnnotation(copy, name, parent));
+                } catch (IOException | RuntimeException ex) {
+                    main.post(() -> toast("Could not open the PDF: " + ex.getMessage()));
+                }
+            });
+        }
     }
 
     // ------------------------------------------------------------------ menus
@@ -701,6 +869,10 @@ public class HomeActivity extends Activity {
         PopupMenu m = new PopupMenu(this, anchor);
         Set<String> pinned = new HashSet<>(prefs.getStringSet("pinnedDocs", Collections.emptySet()));
         boolean isPinned = pinned.contains(e.uri.toString());
+        if (k == Kind.PDF) {
+            m.getMenu().add(0, 7, 0, "New annotation");
+            m.getMenu().add(0, 8, 0, "Annotations…");
+        }
         if (k != Kind.DIR) m.getMenu().add(0, 1, 0, isPinned ? "Unpin" : "Pin to top");
         m.getMenu().add(0, 2, 1, "Rename");
         if (k != Kind.DIR) m.getMenu().add(0, 3, 2, "Duplicate");
@@ -710,6 +882,18 @@ public class HomeActivity extends Activity {
         String parent = parentOf(e);
         m.setOnMenuItemClickListener(item -> {
             switch (item.getItemId()) {
+                case 7:
+                    newAnnotation(e.uri, e.name, parent);
+                    break;
+                case 8:
+                    io.execute(() -> {
+                        List<SafDocs.Entry> notes = notesFor(e, parent);
+                        main.post(() -> {
+                            if (notes.isEmpty()) toast("No annotations yet. Tap the PDF to start one.");
+                            else chooseAnnotation(e, parent, notes);
+                        });
+                    });
+                    break;
                 case 1:
                     if (isPinned) pinned.remove(e.uri.toString());
                     else pinned.add(e.uri.toString());
@@ -733,12 +917,11 @@ public class HomeActivity extends Activity {
                             .setMessage("Delete “" + displayTitle(e.name) + "”" + (k == Kind.DIR ? " and everything in it" : "")
                                     + "? This cannot be undone.")
                             .setPositiveButton("Delete", (d, w) -> {
-                                if (k == Kind.NOTE) {
-                                    SafDocs.Entry bg = SafDocs.child(getContentResolver(), tree, parent, e.name + InkFile.BG_SUFFIX);
-                                    if (bg != null) SafDocs.delete(getContentResolver(), bg.uri);
+                                if (k == Kind.NOTE) deleteNote(e, parent);
+                                else {
+                                    SafDocs.delete(getContentResolver(), e.uri);
+                                    Recents.remove(this, e.uri.toString());
                                 }
-                                SafDocs.delete(getContentResolver(), e.uri);
-                                Recents.remove(this, e.uri.toString());
                                 refresh();
                             })
                             .setNegativeButton(android.R.string.cancel, null).show();
@@ -952,13 +1135,9 @@ public class HomeActivity extends Activity {
             try {
                 ContentResolver cr = getContentResolver();
                 if (k == Kind.PDF) {
-                    String base = Notes.sanitize(Notes.stripExt(name));
-                    String noteName = SafDocs.uniqueName(cr, tree, parent, base, InkFile.EXT);
-                    Uri note = createPdfNote(uri, parent, Notes.stripExt(noteName));
                     main.post(() -> {
                         pd.dismiss();
-                        refresh();
-                        openNote(note, parent, noteName);
+                        annotateExternal(uri);
                     });
                     return;
                 }
@@ -981,6 +1160,25 @@ public class HomeActivity extends Activity {
         });
     }
 
+    /** Import file → a PDF: copy it into the folder; tapping it later starts an annotation. */
+    private void importPdfCopy(Uri pdf) {
+        String pdfName = Notes.displayName(this, pdf, "document.pdf");
+        String parent = currentId();
+        io.execute(() -> {
+            try {
+                String name = SafDocs.uniqueName(getContentResolver(), tree, parent, Notes.sanitize(Notes.stripExt(pdfName)), ".pdf");
+                Uri copy = SafDocs.create(getContentResolver(), tree, parent, "application/pdf", name);
+                SafDocs.copy(getContentResolver(), pdf, copy);
+                main.post(() -> {
+                    toast("Imported " + name);
+                    refresh();
+                });
+            } catch (IOException | RuntimeException e) {
+                main.post(() -> toast("Could not import: " + e.getMessage()));
+            }
+        });
+    }
+
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
@@ -989,8 +1187,12 @@ public class HomeActivity extends Activity {
             return;
         }
         if (req == REQ_TREE) onFolderChosen(data.getData());
-        else if (req == REQ_PDF) importUri(data.getData(), "application/pdf");
-        else if (req == REQ_IMPORT) importUri(data.getData(), null);
+        else if (req == REQ_PDF) annotateExternal(data.getData());
+        else if (req == REQ_IMPORT) {
+            Uri u = data.getData();
+            if (kindOfName(Notes.displayName(this, u, "")) == Kind.PDF) importPdfCopy(u);
+            else importUri(u, null);
+        }
     }
 
     // ------------------------------------------------------------------ thumbnails
@@ -1002,6 +1204,8 @@ public class HomeActivity extends Activity {
                 case NOTE: {
                     Bitmap b = InkFile.readPreview(cr.openInputStream(e.uri));
                     if (b != null) return b;
+                    String[] link = linkOf(e);
+                    if (link != null && link[0] != null) return renderPdf(Uri.parse(link[0]));
                     SafDocs.Entry bg = SafDocs.child(cr, tree, parent, e.name + InkFile.BG_SUFFIX);
                     return bg == null ? null : renderPdf(bg.uri);
                 }
@@ -1141,7 +1345,8 @@ public class HomeActivity extends Activity {
                 h.image.setPadding(p, p, p, p);
                 return convert;
             }
-            String label = k == Kind.MARKDOWN ? "MD" : k == Kind.PDF ? "PDF" : "INK";
+            int linked = k == Kind.PDF ? linkedCount(e) : 0;
+            String label = k == Kind.MARKDOWN ? "MD" : k == Kind.PDF ? (linked > 0 ? "PDF · " + linked + " ink" : "PDF") : "INK";
             int color = k == Kind.MARKDOWN ? 0xff185abd : k == Kind.PDF ? 0xffd93025 : 0xff188038;
             h.badge.setText(label);
             GradientDrawable bd = new GradientDrawable();

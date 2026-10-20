@@ -39,6 +39,8 @@ import java.util.zip.ZipInputStream;
 public final class InkFile {
     public static final String EXT = ".ink";
     public static final String BG_SUFFIX = ".bg.pdf";
+    /** Background attribute holding the content uri of a linked PDF. */
+    public static final String LINK_ATTR = "inkwell-uri";
 
     private InkFile() {
     }
@@ -150,6 +152,8 @@ public final class InkFile {
             String name = p.getAttributeValue(null, "filename");
             if (domain != null && name != null && doc.pdf == null) {
                 doc.pdfName = name;
+                String link = p.getAttributeValue(null, LINK_ATTR);
+                if (link != null) doc.pdfUri = link;
                 File f = null;
                 if ("attach".equals(domain)) {
                     f = new File(noteFile.getPath() + "." + name);
@@ -239,6 +243,31 @@ public final class InkFile {
         } catch (IOException e) {
             return null;
         }
+    }
+
+    /**
+     * The PDF a note annotates: {uri (may be null), filename}, read from the first PDF
+     * background; null for drawings. Closes the stream.
+     */
+    public static String[] readPdfLink(InputStream raw) {
+        try (InputStream in = open(raw)) {
+            XmlPullParser p = Xml.newPullParser();
+            p.setInput(in, null);
+            int ev;
+            while ((ev = p.next()) != XmlPullParser.END_DOCUMENT) {
+                if (ev != XmlPullParser.START_TAG) continue;
+                if ("background".equals(p.getName())) {
+                    if (!"pdf".equals(p.getAttributeValue(null, "type"))) return null;
+                    String name = p.getAttributeValue(null, "filename");
+                    if (name == null) continue;
+                    return new String[]{p.getAttributeValue(null, LINK_ATTR), new File(name).getName()};
+                }
+                if ("layer".equals(p.getName())) continue;
+            }
+        } catch (IOException | XmlPullParserException | RuntimeException e) {
+            return null;
+        }
+        return null;
     }
 
     /** Reads only the &lt;preview&gt; thumbnail from a note stream, then closes it. */
@@ -352,7 +381,14 @@ public final class InkFile {
                 if (bg.type == Doc.Background.Type.PDF) {
                     w.write("<background type=\"pdf\"");
                     if (!pdfWritten) {
-                        w.write(" domain=\"attach\" filename=\"bg.pdf\"");
+                        if (doc.pdfUri != null) {
+                            // Linked PDF: the name keeps desktop Xournal++ working when the PDF sits
+                            // next to the note; the uri is how the app finds it.
+                            String name = doc.pdfName == null ? "document.pdf" : new File(doc.pdfName).getName();
+                            w.write(" domain=\"absolute\" filename=\"" + esc(name) + "\" " + LINK_ATTR + "=\"" + esc(doc.pdfUri) + "\"");
+                        } else {
+                            w.write(" domain=\"attach\" filename=\"bg.pdf\"");
+                        }
                         pdfWritten = true;
                     }
                     w.write(" pageno=\"" + (bg.pdfPage + 1) + "\"/>\n");
