@@ -543,10 +543,11 @@ public class CanvasView extends View implements PdfPages.Listener {
                 live = new Stroke();
                 boolean hl = drawTool == Tools.Tool.HIGHLIGHTER;
                 live.tool = hl ? Stroke.HIGHLIGHTER : Stroke.PEN;
-                live.color = hl ? (tools.hlColor & 0xffffff) | Tools.HL_ALPHA : tools.penColor;
+                live.color = hl ? (tools.hlColor & 0xffffff) | (tools.hlAlpha << 24)
+                        : (tools.penColor & 0xffffff) | (tools.penAlpha << 24);
                 live.width = hl ? tools.hlWidth() : tools.penWidth();
                 live.style = hl ? null : Tools.STYLES[tools.penStyle];
-                live.fill = tools.fill ? 128 : -1;
+                live.fill = tools.fill ? tools.fillAlpha : -1;
                 live.cap = hl ? "butt" : "round";
                 addPoint(o[0], o[1], e.getPressure(idx));
                 break;
@@ -554,10 +555,10 @@ public class CanvasView extends View implements PdfPages.Listener {
             case SHAPE:
                 live = new Stroke();
                 live.tool = Stroke.PEN;
-                live.color = tools.penColor;
+                live.color = (tools.penColor & 0xffffff) | (tools.penAlpha << 24);
                 live.width = tools.penWidth();
                 live.style = Tools.STYLES[tools.penStyle];
-                live.fill = tools.fill && (tools.shape == Shapes.RECT || tools.shape == Shapes.ELLIPSE) ? 128 : -1;
+                live.fill = tools.fill && (tools.shape == Shapes.RECT || tools.shape == Shapes.ELLIPSE) ? tools.fillAlpha : -1;
                 live.setPoints(Shapes.build(tools.shape, startX, startY, startX, startY, live.width), null);
                 break;
             case ERASER:

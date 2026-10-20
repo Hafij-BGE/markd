@@ -86,6 +86,7 @@ public class EditorActivity extends Activity implements CanvasView.Host {
     private LinearLayout colorRow;
     private LinearLayout selectionBar;
     private ImageButton styleBtn, fillBtn, shapeBtn;
+    private TextView opacityBtn;
     private View sizeDivider, styleDivider;
 
     @Override
@@ -238,11 +239,22 @@ public class EditorActivity extends Activity implements CanvasView.Host {
         styleBtn = Ui.icon(this, R.drawable.ic_line_style_plain, "Line style", null);
         styleBtn.setOnClickListener(v -> styleMenu(styleBtn));
         toolRow.addView(styleBtn);
-        fillBtn = Ui.icon(this, R.drawable.ic_fill, "Fill", v -> {
+        fillBtn = Ui.icon(this, R.drawable.ic_fill, "Fill (long-press for fill opacity)", v -> {
             tools.fill = !tools.fill;
             refreshTools();
         });
+        fillBtn.setOnLongClickListener(v -> {
+            fillOpacityDialog();
+            return true;
+        });
         toolRow.addView(fillBtn);
+        opacityBtn = Ui.label(this, "", 13);
+        opacityBtn.setGravity(Gravity.CENTER);
+        opacityBtn.setContentDescription("Opacity");
+        opacityBtn.setTooltipText("Opacity");
+        opacityBtn.setBackground(Ui.ripple(this, 0));
+        opacityBtn.setOnClickListener(v -> opacityDialog());
+        toolRow.addView(opacityBtn, new LinearLayout.LayoutParams(Ui.dp(this, 52), Ui.dp(this, 44)));
         root.addView(scroll(toolRow));
 
         // Colours
@@ -403,6 +415,9 @@ public class EditorActivity extends Activity implements CanvasView.Host {
         sizeDivider.setVisibility(sized ? View.VISIBLE : View.GONE);
         styleDivider.setVisibility(pen ? View.VISIBLE : View.GONE);
         styleBtn.setVisibility(pen ? View.VISIBLE : View.GONE);
+        boolean opaque = pen || tools.tool == Tools.Tool.HIGHLIGHTER;
+        opacityBtn.setVisibility(opaque ? View.VISIBLE : View.GONE);
+        opacityBtn.setText(percent(tools.tool == Tools.Tool.HIGHLIGHTER ? tools.hlAlpha : tools.penAlpha));
         fillBtn.setVisibility(pen ? View.VISIBLE : View.GONE);
         fillBtn.setBackground(Ui.ripple(this, tools.fill ? Ui.withAlpha(accent, 0x40) : 0));
         int[] styleIcons = {R.drawable.ic_line_style_plain, R.drawable.ic_line_style_dash,
@@ -419,9 +434,13 @@ public class EditorActivity extends Activity implements CanvasView.Host {
             case PEN:
                 menu.add(0, 1, 0, "Shape recogniser").setCheckable(true).setChecked(tools.recognizer);
                 menu.add(0, 2, 0, "Pressure sensitivity").setCheckable(true).setChecked(tools.pressure);
+                menu.add(0, 3, 0, "Opacity… (" + percent(tools.penAlpha) + ")");
+                menu.add(0, 4, 0, "Fill opacity… (" + percent(tools.fillAlpha) + ")");
                 m.setOnMenuItemClickListener(i -> {
                     if (i.getItemId() == 1) tools.recognizer = !tools.recognizer;
-                    else tools.pressure = !tools.pressure;
+                    else if (i.getItemId() == 2) tools.pressure = !tools.pressure;
+                    else if (i.getItemId() == 3) opacityDialog();
+                    else fillOpacityDialog();
                     refreshTools();
                     return true;
                 });
@@ -435,13 +454,26 @@ public class EditorActivity extends Activity implements CanvasView.Host {
                     return true;
                 });
                 break;
+            case HIGHLIGHTER:
+                menu.add(0, 1, 0, "Opacity… (" + percent(tools.hlAlpha) + ")");
+                menu.add(0, 2, 0, "Fill opacity… (" + percent(tools.fillAlpha) + ")");
+                m.setOnMenuItemClickListener(i -> {
+                    if (i.getItemId() == 1) opacityDialog();
+                    else fillOpacityDialog();
+                    return true;
+                });
+                break;
             case SHAPE:
                 String[] names = {"Line", "Rectangle", "Ellipse", "Arrow", "Double arrow", "Coordinate system"};
                 for (int i = 0; i < names.length; i++) {
                     menu.add(0, i, i, names[i]).setCheckable(true).setChecked(tools.shape == i);
                 }
+                menu.add(1, 10, 10, "Opacity… (" + percent(tools.penAlpha) + ")");
+                menu.add(1, 11, 11, "Fill opacity… (" + percent(tools.fillAlpha) + ")");
                 m.setOnMenuItemClickListener(i -> {
-                    tools.shape = i.getItemId();
+                    if (i.getItemId() == 10) opacityDialog();
+                    else if (i.getItemId() == 11) fillOpacityDialog();
+                    else tools.shape = i.getItemId();
                     refreshTools();
                     return true;
                 });
@@ -471,6 +503,91 @@ public class EditorActivity extends Activity implements CanvasView.Host {
             return true;
         });
         m.show();
+    }
+
+    private static String percent(int alpha) {
+        return Math.round(alpha * 100f / 255f) + "%";
+    }
+
+    /** Opacity of the current tool: highlighter, or pen and shapes. */
+    private void opacityDialog() {
+        boolean hl = tools.tool == Tools.Tool.HIGHLIGHTER;
+        int color = hl ? tools.hlColor : tools.penColor;
+        alphaDialog(hl ? "Highlighter opacity" : "Pen opacity", hl ? tools.hlAlpha : tools.penAlpha, color, a -> {
+            if (hl) tools.hlAlpha = a;
+            else tools.penAlpha = a;
+            refreshTools();
+        });
+    }
+
+    private void fillOpacityDialog() {
+        int color = tools.tool == Tools.Tool.HIGHLIGHTER ? tools.hlColor : tools.penColor;
+        alphaDialog("Fill opacity", tools.fillAlpha, color, a -> {
+            tools.fillAlpha = a;
+            tools.fill = true;
+            refreshTools();
+        });
+    }
+
+    private interface AlphaCallback {
+        void onAlpha(int alpha);
+    }
+
+    /** Slider from 5% to 100% with a preview over a checkerboard. */
+    private void alphaDialog(String title, int alpha, int color, AlphaCallback cb) {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        int pad = Ui.dp(this, 20);
+        box.setPadding(pad, pad / 2, pad, 0);
+        View preview = new View(this) {
+            private final Paint p = new Paint();
+
+            @Override
+            protected void onDraw(Canvas c) {
+                int s = Ui.dp(getContext(), 8);
+                for (int y = 0; y < getHeight(); y += s) {
+                    for (int x = 0; x < getWidth(); x += s) {
+                        p.setColor(((x / s + y / s) % 2 == 0) ? 0xffffffff : 0xffcccccc);
+                        c.drawRect(x, y, x + s, y + s, p);
+                    }
+                }
+                p.setColor(((int) getTag() << 24) | (color & 0xffffff));
+                c.drawRect(0, 0, getWidth(), getHeight(), p);
+            }
+        };
+        preview.setTag(alpha);
+        box.addView(preview, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(this, 48)));
+        TextView label = Ui.label(this, percent(alpha), 15);
+        label.setGravity(Gravity.CENTER);
+        label.setPadding(0, Ui.dp(this, 10), 0, 0);
+        box.addView(label);
+        SeekBar bar = new SeekBar(this);
+        bar.setMax(95);
+        bar.setProgress(Math.round(alpha * 100f / 255f) - 5);
+        bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar sb, int progress, boolean user) {
+                int a = Math.round((progress + 5) * 255f / 100f);
+                preview.setTag(a);
+                preview.invalidate();
+                label.setText(percent(a));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar sb) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar sb) {
+            }
+        });
+        box.addView(bar);
+        new AlertDialog.Builder(this).setTitle(title).setView(box)
+                .setPositiveButton(android.R.string.ok, (d, w) -> {
+                    cb.onAlpha((int) preview.getTag());
+                    if (canvas.hasSelection()) Toast.makeText(this, "Applies to new strokes", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton(android.R.string.cancel, null).show();
     }
 
     private void textSizeDialog() {

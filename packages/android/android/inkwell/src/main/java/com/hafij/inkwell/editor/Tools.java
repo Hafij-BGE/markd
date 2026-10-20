@@ -28,6 +28,8 @@ public class Tools {
     public int penSize = 2, hlSize = 2, eraserSize = 2;
     public int penStyle;
     public boolean fill;
+    /** Opacity 0..255: pen and shapes, highlighter (Xournal++ uses 0x7f), and fills. */
+    public int penAlpha = 255, hlAlpha = 0x7f, fillAlpha = 128;
     public int shape = Shapes.LINE;
     /** true = erase whole strokes, false = erase only the touched part. */
     public boolean eraseWhole;
@@ -113,6 +115,9 @@ public class Tools {
         eraserSize = clamp(p.getInt("eraserSize", eraserSize));
         penStyle = Math.max(0, Math.min(STYLES.length - 1, p.getInt("penStyle", penStyle)));
         fill = p.getBoolean("fill", fill);
+        penAlpha = clampAlpha(p.getInt("penAlpha", penAlpha));
+        hlAlpha = clampAlpha(p.getInt("hlAlpha", hlAlpha));
+        fillAlpha = clampAlpha(p.getInt("fillAlpha", fillAlpha));
         shape = p.getInt("shape", shape);
         eraseWhole = p.getBoolean("eraseWhole", eraseWhole);
         recognizer = p.getBoolean("recognizer", recognizer);
@@ -132,6 +137,9 @@ public class Tools {
                 .putInt("eraserSize", eraserSize)
                 .putInt("penStyle", penStyle)
                 .putBoolean("fill", fill)
+                .putInt("penAlpha", penAlpha)
+                .putInt("hlAlpha", hlAlpha)
+                .putInt("fillAlpha", fillAlpha)
                 .putInt("shape", shape)
                 .putBoolean("eraseWhole", eraseWhole)
                 .putBoolean("recognizer", recognizer)
@@ -139,6 +147,10 @@ public class Tools {
                 .putBoolean("stylusOnly", stylusOnly)
                 .putFloat("textSize", textSize)
                 .apply();
+    }
+
+    private static int clampAlpha(int a) {
+        return Math.max(13, Math.min(255, a));
     }
 
     private static int clamp(int i) {
