@@ -226,3 +226,22 @@ export const showHandwritingHelp = async(): Promise<void> => {
     buttons: [{ label: 'OK', value: null, primary: true }]
   })
 }
+
+export const showAbout = async(): Promise<void> => {
+  let version = ''
+  if (isNative()) {
+    version = (await callNative<HostInfo>('getInfo')).version
+  }
+  await showDialog({
+    title: 'About Markd',
+    body: h('div', { class: 'help' },
+      h('p', {}, version ? `Markd ${version}` : 'Markd'),
+      h('p', {}, 'Developed by Md. Hafijur Rahman'),
+      h('p', {}, 'GitHub: https://github.com/Hafij-BGE/markd'),
+      h('p', {}, 'License: MIT. Based on MarkText, Copyright © Luo Ran and GitHub contributors.'),
+      h('p', {}, 'This app was generated with AI. Developer support may not be available.')
+    ),
+    dismissValue: null,
+    buttons: [{ label: 'OK', value: null, primary: true }]
+  })
+}

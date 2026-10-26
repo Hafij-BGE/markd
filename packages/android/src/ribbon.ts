@@ -281,6 +281,12 @@ const GROUPS: Record<TabId, ToolGroup[]> = {
         large('light', 'Word Light', ICONS.sun(), setTheme('word'), () => settings.theme === 'word'),
         large('dark', 'Word Dark', ICONS.moon(), setTheme('word-dark'), () => settings.theme === 'word-dark')
       ]
+    },
+    {
+      id: 'about',
+      label: 'About',
+      layout: 'row',
+      items: [large('about', 'About Markd', ICONS.info(), cmd.showAbout)]
     }
   ]
 }
