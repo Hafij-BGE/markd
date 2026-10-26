@@ -36,6 +36,14 @@
           </div>
         </el-col>
         <el-col :span="24">
+          <div
+            class="text"
+            style="min-height: auto"
+          >
+            {{ basedOn }}
+          </div>
+        </el-col>
+        <el-col :span="24">
           <div class="text">
             {{ developer }}
           </div>
@@ -78,6 +86,7 @@ const { t } = useI18n()
 const name = 'Markd'
 const copyright = t('about.copyright', { year: new Date().getFullYear() })
 const copyrightContributors = t('about.copyrightContributors')
+const basedOn = t('about.basedOn')
 const developer = t('about.developer')
 const github = t('about.github')
 const license = t('about.license')
